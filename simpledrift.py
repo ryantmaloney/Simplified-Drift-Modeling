@@ -12,18 +12,25 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     # x=np.linspace(0, numberofdays, numberofbins)
     # envi=np.sin(x)+envimean
     # print(np.max(envi))
-    envi=sci.norm.pdf(x,envimean,envivariance) # A gaussian of environment with center around 0
+    envi=np.zeros((numberofbins,numberofdays))
+    envi[:,0]=sci.norm.pdf(x,envimean,envivariance) # A gaussian of environment with center around 0
     # print(np.max(envi))
     envi=envi/(np.max(envi))*.95
     for t in range(1,numberofdays):
+        envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance)
+        envi[:,t]=envi[:,t]/np.max(envi[:,t])*.95
         for b in range(numberofbins):
             pref[:,t]+=pref[b,t-1]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
             # print(np.sum(sci.norm.pdf(x,x[b],driftvariance)))
         # plt.plot(pref[:,t])
         # plt.show()
-        pref[:,t]=np.multiply(pref[:,t], envi) # Multiplying the preference to the environment
+        pref[:,t]=np.multiply(pref[:,t], envi[:,0]) # Multiplying the preference to the environment
         # print(pref[:,t])
-        pref[:,t]=pref[:,t]+pref[:,0]*0.2/flynum*np.sum(pref[:,t])
+        pref[:,t]=pref[:,t]+pref[:,0]*.05/flynum*np.sum(pref[:,t-1])
 
     plt.pcolormesh(pref)
     plt.colorbar()
+    plt.show()
+    plt.pcolormesh(envi)
+    plt.colorbar()
+    plt.show()
