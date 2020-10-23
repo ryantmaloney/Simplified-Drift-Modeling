@@ -21,7 +21,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance)
         envi[:,t]=envi[:,t]/np.max(envi[:,t])*.95
         driftadvantage[t]=np.sum(np.multiply(pref[:,t-1], envi[:,t]))
-        print(driftadvantage[t])
+        # print(driftadvantage[t])
         for b in range(numberofbins):
             pref[:,t]+=pref[b,t-1]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
             # print(np.sum(sci.norm.pdf(x,x[b],driftvariance)))
@@ -34,7 +34,6 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     fig, (ax0, ax1, ax2, ax3) = plt.subplots(4, 1)
     fig.set_figwidth(8)
     fig.set_figheight(8)
-
     fig.tight_layout()
     plt.subplots_adjust(hspace=.6)
     c=ax0.pcolormesh(envi)
@@ -53,10 +52,18 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     ax2.set_title('total log(num) flies)')
     ax2.set_ylabel('log(num) flies)')
     ax2.set_xlabel('Day')
+    ax2.set_xlim(0,numberofdays)
+
 
     ax3.plot(driftadvantage/np.sum(pref,0))
     ax3.set_title('Change in death rate due to drift ')
     ax3.set_ylabel('∆surviving flies/total flies')
     ax3.set_xlabel('Day')
+    ax3.set_xlim(0,numberofdays)
+
+    fig.colorbar(c,ax=ax2)
+    fig.colorbar(c,ax=ax3)
+
+    fig.suptitle('Bet-hedge variance: '+str(prefvariance)+', Drift variance: '+str(driftvariance), y=-.05, fontsize=16)
 
     plt.show()
