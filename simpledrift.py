@@ -38,7 +38,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     plt.subplots_adjust(hspace=.6)
     c=ax0.pcolormesh(envi)
     fig.colorbar(c,ax=ax0)
-    ax0.set_title('Environment (color is fraction of flies of given pref die)')
+    ax0.set_title('Environment (color is fraction of flies of given pref survive)')
     ax0.set_ylabel('Preference')
     ax0.set_xlabel('Day')
 
