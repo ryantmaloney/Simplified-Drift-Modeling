@@ -20,22 +20,23 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     for t in range(1,numberofdays):
         envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance)
         envi[:,t]=envi[:,t]/np.max(envi[:,t])*.95
-        driftadvantage[t]=np.multiply(pref[:,t], envi[:,t])
+        driftadvantage[t]=np.sum(np.multiply(pref[:,t-1], envi[:,t]))
+        print(driftadvantage[t])
         for b in range(numberofbins):
             pref[:,t]+=pref[b,t-1]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
             # print(np.sum(sci.norm.pdf(x,x[b],driftvariance)))
-        driftadvantage[t]=np.multiply(pref[:,t], envi[:,t])-driftadvantage[t]
+        driftadvantage[t]=np.sum(np.multiply(pref[:,t], envi[:,t]))-driftadvantage[t]
         # plt.plot(pref[:,t])
         # plt.show()
         # print(pref[:,t])
         pref[:,t]=pref[:,t]+pref[:,0]*birthrate/flynum*np.sum(pref[:,t])
         pref[:,t]=np.multiply(pref[:,t], envi[:,t]) # Multiplying the preference to the environment
-    fig, (ax0, ax1, ax2) = plt.subplots(3, 1)
+    fig, (ax0, ax1, ax2, ax3) = plt.subplots(4, 1)
     fig.set_figwidth(8)
     fig.set_figheight(8)
 
     fig.tight_layout()
-    plt.subplots_adjust(hspace=.4)
+    plt.subplots_adjust(hspace=.6)
     c=ax0.pcolormesh(envi)
     fig.colorbar(c,ax=ax0)
     ax0.set_title('Environment (color is fraction of flies of given pref die)')
@@ -52,5 +53,10 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     ax2.set_title('total log(num) flies)')
     ax2.set_ylabel('log(num) flies)')
     ax2.set_xlabel('Day')
+
+    ax3.plot(driftadvantage/np.sum(pref,0))
+    ax3.set_title('Change in death rate due to drift ')
+    ax3.set_ylabel('∆surviving flies/total flies')
+    ax3.set_xlabel('Day')
 
     plt.show()
