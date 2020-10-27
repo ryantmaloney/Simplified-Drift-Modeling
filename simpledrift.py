@@ -44,20 +44,20 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     ax0.set_ylabel('Preference')
     ax0.set_xlabel('Day')
 
-    c=ax1.pcolormesh(np.sum(pref,axis=2))
+    c=ax1.pcolormesh(np.log(pref))
     fig.colorbar(c,ax=ax1)
     ax1.set_title('Fly Preference (color is log(num) flies each day)')
     ax1.set_ylabel('Preference')
     ax1.set_xlabel('Day')
 
-    ax2.plot(np.log(np.sum(pref,axis=[1,2])))
+    ax2.plot(np.log(np.sum(pref,0)))
     ax2.set_title('total log(num) flies)')
     ax2.set_ylabel('log(num) flies)')
     ax2.set_xlabel('Day')
     ax2.set_xlim(0,numberofdays)
 
 
-    ax3.plot(driftadvantage/np.sum(pref,axis=[1,2]))
+    ax3.plot(driftadvantage/np.sum(pref,0))
     ax3.set_title('Change in death rate due to drift ')
     ax3.set_ylabel('∆surviving flies/total flies')
     ax3.set_xlabel('Day')
