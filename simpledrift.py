@@ -2,11 +2,12 @@ import numpy as np
 import scipy.stats as sci
 import matplotlib.pyplot as plt
 
-def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate):
+def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate, matureage):
     x=np.linspace(-1,1,numberofbins)
-    pref=np.zeros((numberofbins,numberofdays))
-    pref[:,0]=sci.norm.pdf(x,prefmean,prefvariance) # A gaussian of preference with center around 0
-    pref[:,0]=pref[:,0]/np.sum(pref[:,0])*flynum
+    maxage=30
+    pref=np.zeros((numberofbins,numberofdays,maxage))
+    pref[:,0,0]=sci.norm.pdf(x,prefmean,prefvariance) # A gaussian of preference with center around 0
+    pref[:,0,0]=pref[:,0,0]/np.sum(pref[:,0,0])*flynum # total # of flies=flynum
     #envi=gain*np.sin(x*2*np.pi/per+182*2*np.pi)+envimean
     # envi=gain*np.sin(x*2*np.pi/per+2*np.pi)+envimean
     # x=np.linspace(0, numberofdays, numberofbins)
@@ -23,7 +24,8 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         driftadvantage[t]=np.sum(np.multiply(pref[:,t-1], envi[:,t]))
         # print(driftadvantage[t])
         for b in range(numberofbins):
-            pref[:,t]+=pref[b,t-1]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
+            for a in range(maxage):
+                pref[:,t,a]+=pref[b,t-1,a]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
             # print(np.sum(sci.norm.pdf(x,x[b],driftvariance)))
         driftadvantage[t]=np.sum(np.multiply(pref[:,t], envi[:,t]))-driftadvantage[t]
         # plt.plot(pref[:,t])
@@ -67,3 +69,5 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     fig.suptitle('Bet-hedge variance: '+str(prefvariance)+', Drift variance: '+str(driftvariance), y=-.05, fontsize=16)
 
     plt.show()
+
+    #Add in age
