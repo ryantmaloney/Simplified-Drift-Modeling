@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.stats as sci
 import matplotlib.pyplot as plt
+import time
 
 def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate, matureage):
     x=np.linspace(-1,1,numberofbins)
@@ -23,11 +24,13 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         envi[:,t]=envi[:,t]/np.max(envi[:,t])*.95
         # print(driftadvantage[t])
         driftadvantage[t]=np.sum(np.multiply(np.sum(pref[:,t-1],1), envi[:,t]))
+        tic=time.perf_counter()
         for a in range(maxage):
             for b in range(numberofbins):
                 pref[:,t,a]+=pref[b,t-1,a]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
                 pref[:,t,a]=np.multiply(pref[:,t,a], envi[:,t]) # Multiplying the preference to the environment
-        
+        toc=time.perf_counter()
+        tik=time.perf_counter()
         driftadvantage[t]=np.sum(np.multiply(np.sum(pref[:,t],1), envi[:,t]))-driftadvantage[t]
         for a in range(maxage):
                 if a>10:
@@ -36,6 +39,10 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         pref[:,t,0]=0
         plt.pcolormesh(np.log(pref[:,t,:]))
         plt.show()
+        tok=time.perf_counter()
+
+    print(toc-tic)
+    print(tok-tik)
           
     fig, (ax0, ax1, ax2, ax3) = plt.subplots(4, 1)
     fig.set_figwidth(8)
@@ -72,5 +79,3 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     fig.suptitle('Bet-hedge variance: '+str(prefvariance)+', Drift variance: '+str(driftvariance), y=-.05, fontsize=16)
 
     plt.show()
-
-    #Add in age
