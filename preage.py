@@ -3,12 +3,11 @@ import scipy.stats as sci
 import matplotlib.pyplot as plt
 import time
 
-def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate, matureage):
+def padriftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate):
     x=np.linspace(-1,1,numberofbins)
-    maxage=30
-    pref=np.zeros((numberofbins,numberofdays,maxage))
-    pref[:,0,0]=sci.norm.pdf(x,prefmean,prefvariance) # A gaussian of preference with center around 0
-    pref[:,0,0]=pref[:,0,0]/np.sum(pref[:,0,0])*flynum # total # of flies=flynum
+    pref=np.zeros((numberofbins,numberofdays))
+    pref[:,0]=sci.norm.pdf(x,prefmean,prefvariance) # A gaussian of preference with center around 0
+    pref[:,0]=pref[:,0]/np.sum(pref[:,0])*flynum
     #envi=gain*np.sin(x*2*np.pi/per+182*2*np.pi)+envimean
     # envi=gain*np.sin(x*2*np.pi/per+2*np.pi)+envimean
     # x=np.linspace(0, numberofdays, numberofbins)
@@ -22,28 +21,21 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     for t in range(1,numberofdays):
         envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance)
         envi[:,t]=envi[:,t]/np.max(envi[:,t])*.95
+        driftadvantage[t]=np.sum(np.multiply(pref[:,t-1], envi[:,t]))
         # print(driftadvantage[t])
-        driftadvantage[t]=np.sum(np.multiply(np.sum(pref[:,t-1],1), envi[:,t]))
         tic=time.perf_counter()
-        for a in range(maxage):
-            for b in range(numberofbins):
-                pref[:,t,a]+=pref[b,t-1,a]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
-                pref[:,t,a]=np.multiply(pref[:,t,a], envi[:,t]) # Multiplying the preference to the environment
+        for b in range(numberofbins):
+            pref[:,t]+=pref[b,t-1]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
+            # print(np.sum(sci.norm.pdf(x,x[b],driftvariance)))
         toc=time.perf_counter()
-        
-        tik=time.perf_counter()
-        driftadvantage[t]=np.sum(np.multiply(np.sum(pref[:,t],1), envi[:,t]))-driftadvantage[t]
-        for a in range(maxage):
-                if a>10:
-                    pref[:,t,0]=pref[:,t,0]+pref[:,0,a]*birthrate/flynum*np.sum(pref[:,t,a])
-        pref[:,t,1:]=pref[:,t,:-1]
-        pref[:,t,0]=0
-        plt.pcolormesh(np.log(pref[:,t,:]))
-        plt.show()
-        tok=time.perf_counter()
+        driftadvantage[t]=np.sum(np.multiply(pref[:,t], envi[:,t]))-driftadvantage[t]
+        # plt.plot(pref[:,t])
+        # plt.show()
+        # print(pref[:,t])
+        pref[:,t]=pref[:,t]+pref[:,0]*birthrate/flynum*np.sum(pref[:,t])
+        pref[:,t]=np.multiply(pref[:,t], envi[:,t]) # Multiplying the preference to the environment
         print(toc-tic)
-        print(tok-tik)
-          
+
     fig, (ax0, ax1, ax2, ax3) = plt.subplots(4, 1)
     fig.set_figwidth(8)
     fig.set_figheight(8)
@@ -55,19 +47,20 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     ax0.set_ylabel('Preference')
     ax0.set_xlabel('Day')
 
-    c=ax1.pcolormesh(np.sum(pref,axis=2))
+    c=ax1.pcolormesh(np.log(pref))
     fig.colorbar(c,ax=ax1)
     ax1.set_title('Fly Preference (color is log(num) flies each day)')
     ax1.set_ylabel('Preference')
     ax1.set_xlabel('Day')
 
-    ax2.plot(np.log(np.sum(pref,axis=(0,2))))
+    ax2.plot(np.log(np.sum(pref,0)))
     ax2.set_title('total log(num) flies)')
     ax2.set_ylabel('log(num) flies)')
     ax2.set_xlabel('Day')
     ax2.set_xlim(0,numberofdays)
 
-    ax3.plot(driftadvantage/np.sum(pref,axis=(0,2)))
+
+    ax3.plot(driftadvantage/np.sum(pref,0))
     ax3.set_title('Change in death rate due to drift ')
     ax3.set_ylabel('∆surviving flies/total flies')
     ax3.set_xlabel('Day')
