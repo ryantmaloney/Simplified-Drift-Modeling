@@ -43,9 +43,10 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         tik=time.perf_counter()
         print(np.sum(pref[:,t,:]))
         driftadvantage[t]=np.sum(pref[:,t,:])-driftadvantage[t]
-        pref[:,t,0]+=pref[:,0,0]*birthrate/flynum*np.sum(pref[:,t,matureage:])
         pref[:,t,1:]=pref[:,t,:-1]
         pref[:,t,0]=0
+        pref[:,t,0]+=pref[:,0,0]*birthrate/flynum*np.sum(pref[:,t,matureage:])
+        # or an alternative? how do more flies die given the next day's environment
         # plt.pcolormesh(np.log(pref[:,t,:]))
         # plt.show()
         tok=time.perf_counter()
