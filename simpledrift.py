@@ -90,3 +90,4 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     fig.suptitle('Bet-hedge variance: '+str(prefvariance)+', Drift variance: '+str(driftvariance), y=-.05, fontsize=16)
 
     plt.show()
+#hi
