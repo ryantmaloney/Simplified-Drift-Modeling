@@ -23,11 +23,13 @@ def padriftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, 
         envi[:,t]=envi[:,t]/np.max(envi[:,t])*.95
         driftadvantage[t]=np.sum(np.multiply(pref[:,t-1], envi[:,t]))
         # print(driftadvantage[t])
+        
         tic=time.perf_counter()
         for b in range(numberofbins):
             pref[:,t]+=pref[b,t-1]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
             # print(np.sum(sci.norm.pdf(x,x[b],driftvariance)))
         toc=time.perf_counter()
+
         driftadvantage[t]=np.sum(np.multiply(pref[:,t], envi[:,t]))-driftadvantage[t]
         # plt.plot(pref[:,t])
         # plt.show()
