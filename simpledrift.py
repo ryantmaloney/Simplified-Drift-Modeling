@@ -30,7 +30,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         # print(driftadvantage[t])
         for a in range(maxage):
             driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a], envi[:,t]))
-        print(driftadvantage[t])
+        #print(driftadvantage[t])
         tic=time.perf_counter()
         for a in range(maxage):
             pref[:,t,a]=pref[:,t-1,a]
@@ -41,7 +41,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         toc=time.perf_counter()
         
         tik=time.perf_counter()
-        print(np.sum(pref[:,t,:]))
+        #print(np.sum(pref[:,t,:]))
         driftadvantage[t]=np.sum(pref[:,t,:])-driftadvantage[t]
         pref[:,t,1:]=pref[:,t,:-1]
         pref[:,t,0]=0
@@ -52,8 +52,8 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         tok=time.perf_counter()
         toctimer+=toc-tic
         toktimer+=tok-tik
-    print(toctimer)
-    print(toktimer)
+    #print(toctimer)
+    #print(toktimer)
           
     fig, (ax0, ax1, ax2, ax3) = plt.subplots(4, 1)
     fig.set_figwidth(8)
