@@ -30,7 +30,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         # print(driftadvantage[t])
         for a in range(maxage):
             driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a], envi[:,t]))
-        print(driftadvantage[t])
+        #print(driftadvantage[t])
         tic=time.perf_counter()
         for a in range(maxage):
             pref[:,t,a]=pref[:,t-1,a]
@@ -90,4 +90,3 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     fig.suptitle('Bet-hedge variance: '+str(prefvariance)+', Drift variance: '+str(driftvariance), y=-.05, fontsize=16)
 
     plt.show()
-#hi
