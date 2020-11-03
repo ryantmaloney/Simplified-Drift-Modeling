@@ -6,10 +6,14 @@ import time
 def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate, matureage):
     x=np.linspace(-1,1,numberofbins)
     maxage=30
+    reducebethedge=np.zeros((numberofbins,numberofdays,maxage))
     for q in range(0,2):
         pref=np.zeros((numberofbins,numberofdays,maxage))
         pref[:,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A gaussian of preference with center around 0
         pref[:,0,0]=pref[:,0,0]/np.sum(pref[:,0,0])*flynum # total # of flies=flynum
+        reducebethedge=sci.norm.pdf(x,prefmean[.9q],prefvariance[.9q]) # A gaussian of preference with center around 0
+        reducebethedge=reducebethedge/np.sum(reducebethedge)*flynum # total # of flies=flynum
+
         #envi=gain*np.sin(x*2*np.pi/per+182*2*np.pi)+envimean
         # envi=gain*np.sin(x*2*np.pi/per+2*np.pi)+envimean
         # x=np.linspace(0, numberofdays, numberofbins)
@@ -30,21 +34,25 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
             # pref[:,t,0]=0
             #print(pref[:,0,0])
             #print(np.sum(pref[:,t-1,matureage:]))
-            pref[:,t,0]=pref[:,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:])
-            envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance)
-            envi[:,t]=envi[:,t]/np.max(envi[:,t])*.95
-            # print(driftadvantage[t])
-            for a in range(maxage):
-                driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a], envi[:,t]))
-            #print(driftadvantage[t])
-            tic=time.perf_counter()
-            for a in range(maxage):
-                pref[:,t,a]+=pref[:,t-1,a]
-                for b in range(numberofbins):
-                    pref[:,t,a]+=pref[b,t-1,a]*blur[b,:]/np.sum(blur[b,:])
-                    #pref[:,t,a]+=pref[b,t-1,a]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
-                pref[:,t,a]=np.multiply(pref[:,t,a], envi[:,t]) # Multiplying the preference to the environment
-            toc=time.perf_counter()
+            for w in range(1):
+                if w==0:
+                    pref[:,t,0]=reducebethedge*birthrate/flynum*np.sum(pref[:,t-1,matureage:])
+                if w==1:
+                    pref[:,t,0]=pref[:,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:])
+                envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance)
+                envi[:,t]=envi[:,t]/np.max(envi[:,t])*.95
+                # print(driftadvantage[t])
+                for a in range(maxage):
+                    driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a], envi[:,t]))
+                #print(driftadvantage[t])
+                tic=time.perf_counter()
+                for a in range(maxage):
+                    pref[:,t,a]+=pref[:,t-1,a]
+                    for b in range(numberofbins):
+                        pref[:,t,a]+=pref[b,t-1,a]*blur[b,:]/np.sum(blur[b,:])
+                        #pref[:,t,a]+=pref[b,t-1,a]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
+                    pref[:,t,a]=np.multiply(pref[:,t,a], envi[:,t]) # Multiplying the preference to the environment
+                toc=time.perf_counter()
             
             tik=time.perf_counter()
         # print(np.sum(pref[:,t,:]))
