@@ -54,7 +54,6 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                     pref[:,t,a]=np.multiply(pref[:,t,a], envi[:,t]) # Multiplying the preference to the environment       
             driftadvantage[t]=np.sum(pref[:,t,:])-driftadvantage[t]
             pref[:,t,1:]=pref[:,t,:-1]
-        print(drift-bh)
             # print(bh)
             # print(drift)
  
