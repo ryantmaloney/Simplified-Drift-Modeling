@@ -6,68 +6,58 @@ import time
 def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate, matureage):
     x=np.linspace(-1,1,numberofbins)
     maxage=30
+    pref=np.zeros((numberofbins,numberofdays,maxage))
     reducebethedge=np.zeros((numberofbins,numberofdays,maxage))
     for q in range(0,2):
-        pref=np.zeros((numberofbins,numberofdays,maxage))
         pref[:,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A gaussian of preference with center around 0
         pref[:,0,0]=pref[:,0,0]/np.sum(pref[:,0,0])*flynum # total # of flies=flynum
-        reducebethedge=sci.norm.pdf(x,prefmean[.9q],prefvariance[.9q]) # A gaussian of preference with center around 0
-        reducebethedge=reducebethedge/np.sum(reducebethedge)*flynum # total # of flies=flynum
+        # print(pref[:,0,0])
+        reducebethedge[:,0,0]=sci.norm.pdf(x,np.multiply(prefmean[q],0.9),np.multiply(prefvariance[q],0.9)) # A gaussian of preference with center around 0
+        reducebethedge[:,0,0]=reducebethedge[:,0,0]/np.sum(reducebethedge[:,0,0])*flynum # total # of flies=flynum
+        # print(reducebethedge)
+        global drift
+        global bh
 
-        #envi=gain*np.sin(x*2*np.pi/per+182*2*np.pi)+envimean
-        # envi=gain*np.sin(x*2*np.pi/per+2*np.pi)+envimean
-        # x=np.linspace(0, numberofdays, numberofbins)
-        # envi=np.sin(x)+envimean
-        # print(np.max(envi))
         envi=np.zeros((numberofbins,numberofdays))
         envi[:,0]=sci.norm.pdf(x,envimean,envivariance) # A gaussian of environment with center around 0
-        # print(np.max(envi))
         envi=envi/(np.max(envi))*deathrate
         driftadvantage=np.zeros((numberofdays))
         blur=np.zeros((numberofbins,numberofbins))
-        toctimer=0
-        toktimer=0
         
         for b in range(numberofbins):
             blur[b,:]=sci.norm.pdf(x,x[b],driftvariance[q])
         for t in range(1,numberofdays):
-            # pref[:,t,0]=0
-            #print(pref[:,0,0])
-            #print(np.sum(pref[:,t-1,matureage:]))
-            for w in range(1):
-                if w==0:
-                    pref[:,t,0]=reducebethedge*birthrate/flynum*np.sum(pref[:,t-1,matureage:])
+            for w in range(2):
                 if w==1:
+                    pref[:,t,0]=reducebethedge[:,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:])
+                    bh=pref[:,t,0]
+                    #print(bh)
+                    #print(pref[:,t,0])
+                if w==2:
                     pref[:,t,0]=pref[:,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:])
+                    drift=pref[:,t,0]
+                    #print(drift)
+                    #print(pref[:,t,0])
+
                 envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance)
                 envi[:,t]=envi[:,t]/np.max(envi[:,t])*.95
-                # print(driftadvantage[t])
+
                 for a in range(maxage):
                     driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a], envi[:,t]))
-                #print(driftadvantage[t])
-                tic=time.perf_counter()
+                    #print(driftadvantage[t])
+
                 for a in range(maxage):
                     pref[:,t,a]+=pref[:,t-1,a]
                     for b in range(numberofbins):
                         pref[:,t,a]+=pref[b,t-1,a]*blur[b,:]/np.sum(blur[b,:])
                         #pref[:,t,a]+=pref[b,t-1,a]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
-                    pref[:,t,a]=np.multiply(pref[:,t,a], envi[:,t]) # Multiplying the preference to the environment
-                toc=time.perf_counter()
-            
-            tik=time.perf_counter()
-        # print(np.sum(pref[:,t,:]))
+                    pref[:,t,a]=np.multiply(pref[:,t,a], envi[:,t]) # Multiplying the preference to the environment       
             driftadvantage[t]=np.sum(pref[:,t,:])-driftadvantage[t]
             pref[:,t,1:]=pref[:,t,:-1]
-
-            # or an alternative? how do more flies die given the next day's environment
-            # plt.pcolormesh(np.log(pref[:,t,:]))
-            # plt.show()
-            tok=time.perf_counter()
-            toctimer+=toc-tic
-            toktimer+=tok-tik
-        #print(toctimer)
-        #print(toktimer)
-        
+        print(drift-bh)
+            # print(bh)
+            # print(drift)
+ 
         fig, (ax0, ax1, ax2, ax3) = plt.subplots(4, 1)
         fig.set_figwidth(8)
         fig.set_figheight(8)
