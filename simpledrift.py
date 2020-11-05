@@ -15,8 +15,6 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         reducebethedge[:,0,0]=sci.norm.pdf(x,np.multiply(prefmean[q],0.9),np.multiply(prefvariance[q],0.9)) # A gaussian of preference with center around 0
         reducebethedge[:,0,0]=reducebethedge[:,0,0]/np.sum(reducebethedge[:,0,0])*flynum # total # of flies=flynum
         # print(reducebethedge)
-        global drift
-        global bh
 
         envi=np.zeros((numberofbins,numberofdays))
         envi[:,0]=sci.norm.pdf(x,envimean,envivariance) # A gaussian of environment with center around 0
@@ -27,17 +25,19 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         for b in range(numberofbins):
             blur[b,:]=sci.norm.pdf(x,x[b],driftvariance[q])
         for t in range(1,numberofdays):
+            bh=pref[:,t,0]
+            drift=pref[:,t,0]
             for w in range(2):
                 if w==1:
                     pref[:,t,0]=reducebethedge[:,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:])
-                    bh=pref[:,t,0]
-                    #print(bh)
+                    print(bh)
                     #print(pref[:,t,0])
                 if w==2:
                     pref[:,t,0]=pref[:,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:])
-                    drift=pref[:,t,0]
-                    #print(drift)
+                    print(drift)
                     #print(pref[:,t,0])
+                # print(bh)
+                # print(drift)
 
                 envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance)
                 envi[:,t]=envi[:,t]/np.max(envi[:,t])*.95
@@ -54,8 +54,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                     pref[:,t,a]=np.multiply(pref[:,t,a], envi[:,t]) # Multiplying the preference to the environment       
             driftadvantage[t]=np.sum(pref[:,t,:])-driftadvantage[t]
             pref[:,t,1:]=pref[:,t,:-1]
-            # print(bh)
-            # print(drift)
+        
  
         fig, (ax0, ax1, ax2, ax3) = plt.subplots(4, 1)
         fig.set_figwidth(8)
