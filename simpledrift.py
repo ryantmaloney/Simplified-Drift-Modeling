@@ -3,7 +3,7 @@ import scipy.stats as sci
 import matplotlib.pyplot as plt
 import time
 
-def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate, matureage):
+def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate, matureage, percentbh):
     x=np.linspace(-1,1,numberofbins)
     maxage=30
     pref=np.zeros((numberofbins,numberofdays,maxage))
@@ -12,7 +12,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         pref[:,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A gaussian of preference with center around 0
         pref[:,0,0]=pref[:,0,0]/np.sum(pref[:,0,0])*flynum # total # of flies=flynum
         # print(pref[:,0,0])
-        reducebethedge[:,0,0]=sci.norm.pdf(x,np.multiply(prefmean[q],0.9),np.multiply(prefvariance[q],0.9)) # A gaussian of preference with center around 0
+        reducebethedge[:,0,0]=sci.norm.pdf(x,np.multiply(prefmean[q],percentbh),np.multiply(prefvariance[q],percentbh)) # A gaussian of preference with center around 0
         reducebethedge[:,0,0]=reducebethedge[:,0,0]/np.sum(reducebethedge[:,0,0])*flynum # total # of flies=flynum
         # print(reducebethedge)
 
@@ -25,19 +25,17 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         for b in range(numberofbins):
             blur[b,:]=sci.norm.pdf(x,x[b],driftvariance[q])
         for t in range(1,numberofdays):
-            bh=pref[:,t,0]
-            drift=pref[:,t,0]
             for w in range(2):
+                bh=pref[:,t,0]
+                drift=pref[:,t,0]
                 if w==1:
                     pref[:,t,0]=reducebethedge[:,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:])
-                    print(bh)
-                    #print(pref[:,t,0])
+                    #print(bh)
                 if w==2:
                     pref[:,t,0]=pref[:,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:])
-                    print(drift)
-                    #print(pref[:,t,0])
-                # print(bh)
-                # print(drift)
+                    #print(drift)
+                print(bh)
+                print(drift)
 
                 envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance)
                 envi[:,t]=envi[:,t]/np.max(envi[:,t])*.95
