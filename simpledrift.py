@@ -30,9 +30,8 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                 #print(pref[:,t,0])
                 if w==0:
                     pref[:,t,0,0]=reducebethedge[:,0,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0])
-                    #print(pref[:,t,0,0])
+                    print(pref[:,t,0,0])
                 if w==1:
-                    #pref[:,t,:]=0
                     pref[:,t,0,1]=pref[:,0,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0])
                     #print(pref[:,t,0,1])
                     # print(bh)
