@@ -6,11 +6,14 @@ import time
 def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate, matureage, percentbh):
     x=np.linspace(-1,1,numberofbins)
     maxage=30
-    pref=np.zeros((numberofbins,numberofdays,maxage,2))
-    reducebethedge=np.zeros((numberofbins,numberofdays,maxage,2))
-    for q in range(0,2):
+    numconditions=len(prefvariance)
+    for q in range(numconditions):
+        pref=np.zeros((numberofbins,numberofdays,maxage,2))
+        reducebethedge=np.zeros((numberofbins,numberofdays,maxage,2))
         pref[:,0,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A gaussian of preference with center around 0
         pref[:,0,0,0]=pref[:,0,0,0]/np.sum(pref[:,0,0])*flynum # total # of flies=flynum
+        pref[:,1,1,0]=pref[:,0,0,0]
+        print(np.sum(pref[:,0,0,0]))
         #print(pref[:,0,0])
         reducebethedge[:,0,0,0]=sci.norm.pdf(x,prefmean[q],np.multiply(prefvariance[q],percentbh)) # A gaussian of preference with center around 0
         reducebethedge[:,0,0,0]=reducebethedge[:,0,0,0]/np.sum(reducebethedge[:,0,0,0])*flynum # total # of flies=flynum
@@ -39,7 +42,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                     # print(bh-pref[:,t,0])
                 #print(pref[:,t,0])
                 envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance)
-                envi[:,t]=envi[:,t]/np.max(envi[:,t])*.95
+                envi[:,t]=envi[:,t]/np.max(envi[:,t])*deathrate
 
                 for a in range(maxage):
                     driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a,0], envi[:,t])) #Should extend to include BH
@@ -49,22 +52,19 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                     #pref[:,t,a]+=pref[:,t-1,a]
                     #not sure why this line was here!
                     if a>0:
+                        # print(pref[b,t-1,a,0])
                         for b in range(numberofbins):
                             pref[:,t,a,w]+=pref[b,t-1,a,0]*blur[b,:,w]/np.sum(blur[b,:,w])
                             #pref[:,t,a]+=pref[b,t-1,a]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
                     pref[:,t,a,w]=np.multiply(pref[:,t,a,w], envi[:,t]) # Multiplying the preference to the environment
-                # if w==0:
-                #     bh=pref[:,t,0,]
-                #     #print(bh)
-                # if w==1:
-                #     drift=pref[:,t,0]
-                #     # print(drift)
-                #     # print(bh-drift)
+
             driftadvantage[t]=np.sum(pref[:,t,:])-driftadvantage[t]
             betadvantage[t]=np.sum(pref[:,t,0,1]-pref[:,t,0,0])
-            pref[:,t,1:]=pref[:,t,:-1]
-            print(np.sum(pref[:,t,0,1]-pref[:,t,0,0]))
-
+            # print(np.sum(pref[:,t,:,0]))
+            # print(np.sum(pref[:,t,:-1,0]))
+            pref[:,t,1:,0]=pref[:,t,:-1,0]
+            # print(np.sum(pref[:,t,1:,0]))
+            #print(np.sum(pref[:,t,0,1]-pref[:,t,0,0]))
 
         fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1)
         fig.set_figwidth(8)
