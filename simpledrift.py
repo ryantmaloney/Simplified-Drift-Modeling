@@ -33,10 +33,10 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
             for w in range(2):
                 #print(pref[:,t,0])
                 if w==0:
-                    pref[:,t,0,0]=reducebethedge[:,0,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0])
+                    pref[:,t,0,0]=pref[:,0,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0])
                     #print(pref[:,t,0,0])
                 if w==1:
-                    pref[:,t,0,1]=pref[:,0,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0])
+                    pref[:,t,0,1]=reducebethedge[:,0,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0])
                     #print(pref[:,t,0,1])
                     # print(bh)
                     # print(bh-pref[:,t,0])
@@ -59,7 +59,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                     pref[:,t,a,w]=np.multiply(pref[:,t,a,w], envi[:,t]) # Multiplying the preference to the environment
 
             driftadvantage[t]=np.sum(pref[:,t,:])-driftadvantage[t]
-            betadvantage[t]=np.sum(pref[:,t,0,1]-pref[:,t,0,0])
+            betadvantage[t]=np.sum(pref[:,t,0,0]-pref[:,t,0,1])
             # print(np.sum(pref[:,t,:,0]))
             # print(np.sum(pref[:,t,:-1,0]))
             pref[:,t,1:,0]=pref[:,t,:-1,0]
@@ -77,7 +77,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         ax0.set_ylabel('Preference')
         ax0.set_xlabel('Day')
 
-        c=ax1.pcolormesh(np.sum(pref[:,:,2:,0],axis=2))
+        c=ax1.pcolormesh(np.sum(pref[:,:,:,0],axis=2))
         fig.colorbar(c,ax=ax1)
         ax1.set_title('Fly Preference (color is log(num) flies each day)')
         ax1.set_ylabel('Preference')
@@ -109,4 +109,6 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
 
         fig.suptitle('Bet-hedge variance: '+str(prefvariance[q])+', Drift variance: '+str(driftvariance[q]), y=-.05, fontsize=16)
 
-        plt.show()
+        plt.show
+
+        return pref
