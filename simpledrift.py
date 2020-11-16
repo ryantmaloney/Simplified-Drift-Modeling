@@ -71,8 +71,8 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
             pref[:,t,1:,0]=pref[:,t,:-1,0]
 
         fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1)
-        fig.set_figwidth(8)
-        fig.set_figheight(8)
+        fig.set_figwidth(10)
+        fig.set_figheight(12)
         fig.tight_layout()
         plt.subplots_adjust(hspace=.6)
         c=ax0.pcolormesh(envi)
@@ -105,16 +105,14 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         ax4.set_xlabel('Day')
         ax4.set_xlim(0,numberofdays)
 
-
         fig.colorbar(c,ax=ax2)
         fig.colorbar(c,ax=ax3)
         fig.colorbar(c,ax=ax4)
-
 
         fig.suptitle('Bet-hedge variance: '+str(prefvariance[q])+', Drift variance: '+str(driftvariance[q]), y=-.05, fontsize=16)
 
         plt.show
 
         finalpop[q]=np.sum(pref[:,-1,:,0])
-
+    
     return finalpop
