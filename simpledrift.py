@@ -11,14 +11,16 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     for q in range(numconditions):
         pref=np.zeros((numberofbins,numberofdays,maxage,2))
         reducebethedge=np.zeros((numberofbins,numberofdays,maxage,2))
-        pref[:,0,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A gaussian of preference with center around 0 ***** BH
-        #pref[prefmean[q],0,0,0]=flynum 
-        #if prefmean<minimum use ^^^
+        pref[:,0,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A gaussian of preference with center around 0
+        if prefvariance[q]<0.015:
+            pref[:,0,0,0]=flynum
+
         pref[:,0,0,0]=pref[:,0,0,0]/np.sum(pref[:,0,0])*flynum # total # of flies=flynum
         pref[:,1,1,0]=pref[:,0,0,0]
-        print(np.sum(pref[:,0,0,0]))
         #print(pref[:,0,0])
-        reducebethedge[:,0,0,0]=sci.norm.pdf(x,prefmean[q],np.multiply(prefvariance[q],percentbh)) # A gaussian of preference with center around 0 ***** BH
+        reducebethedge[:,0,0,0]=sci.norm.pdf(x,prefmean[q],np.multiply(prefvariance[q],percentbh)) # A gaussian of preference with center around 0 
+        if prefvariance[q]<0.015:
+            reducebethedge[:,0,0,0]=flynum
         reducebethedge[:,0,0,0]=reducebethedge[:,0,0,0]/np.sum(reducebethedge[:,0,0,0])*flynum # total # of flies=flynum
         #print(reducebethedge[:,0,0])
 
@@ -57,18 +59,16 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                     if a>0:
                         # print(pref[b,t-1,a,0])
                         for b in range(numberofbins):
-                            #if pref<minimum
-                            pref[:,t,a,w]+=pref[b,t-1,a,0]*blur[b,:,w]/np.sum(blur[b,:,w])
+                            if prefvariance[q]<0.015:
+                                pref[:,t,a,w]+=pref[b,t-1,a,0]
+                            if prefvariance[q]>0.015:
+                                pref[:,t,a,w]+=pref[b,t-1,a,0]*blur[b,:,w]/np.sum(blur[b,:,w])
                             #pref[:,t,a]+=pref[b,t-1,a]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
                     pref[:,t,a,w]=np.multiply(pref[:,t,a,w], envi[:,t]) # Multiplying the preference to the environment
 
             driftadvantage[t]=np.sum(pref[:,t,:])-driftadvantage[t]
             betadvantage[t]=np.sum(pref[:,t,0,0]-pref[:,t,0,1])
-            # print(np.sum(pref[:,t,:,0]))
-            # print(np.sum(pref[:,t,:-1,0]))
             pref[:,t,1:,0]=pref[:,t,:-1,0]
-            # print(np.sum(pref[:,t,1:,0]))
-            #print(np.sum(pref[:,t,0,1]-pref[:,t,0,0]))
 
         fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1)
         fig.set_figwidth(8)
@@ -87,8 +87,8 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         ax1.set_ylabel('Preference')
         ax1.set_xlabel('Day')
 
-        ax2.plot(np.log(np.sum(pref,axis=(0,2))))
-        ax2.set_title('total log(num) flies)')
+        ax2.plot(np.log(np.sum(pref[:,:,:,0],axis=(0,2))))
+        ax2.set_title('total log(num) flies)') # lowest value is 0.0001 (prefvariance = 0.01 with percent bh=0.01)
         ax2.set_ylabel('log(num) flies)')
         ax2.set_xlabel('Day')
         ax2.set_xlim(0,numberofdays)
