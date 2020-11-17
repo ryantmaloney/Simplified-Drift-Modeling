@@ -115,4 +115,4 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
 
         finalpop[q]=np.sum(pref[:,-1,:,0])
     
-    return finalpop
+    return finalpop, flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate, matureage, percentbh
