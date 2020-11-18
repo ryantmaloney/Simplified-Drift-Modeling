@@ -114,5 +114,12 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         plt.show
 
         finalpop[q]=np.sum(pref[:,-1,:,0])
-    
-    return finalpop, flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate, matureage, percentbh
+return finalpop;
+
+print (finalpop)
+
+# def heatmap():
+#     #[finalpop]=sd.driftmodeling(flynum, numberofbins, numberofdays, prefmean[q], prefvariance[q], envimean, envivariance, driftvariance[q], gain, per,deathrate,birthrate,matureage, percentbh)
+#     print(finalpop[q])
+#     # plt.imshow(finalpop, cmap='hot', interpolation='nearest')
+#     # plt.show()
