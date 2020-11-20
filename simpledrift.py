@@ -2,55 +2,51 @@ import numpy as np
 import scipy.stats as sci
 import matplotlib.pyplot as plt
 import time
+import math
 
-def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, deathrate, birthrate, matureage, percentbh):
-    x=np.linspace(-1,1,numberofbins)
-    maxage=30
-    numconditions=len(prefvariance)
+def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, maxsurvivalrate, birthrate, matureage, percentbh):
+    x=np.linspace(-1,1,numberofbins) # number of bins between -1 and 1
+    maxage=30 #maximum age
+    numconditions=len(prefvariance) # Number of conditions based on the total conditions we're running
     finalpop=np.zeros((numconditions))
-    for q in range(numconditions):
-        pref=np.zeros((numberofbins,numberofdays,maxage,2))
-        reducebethedge=np.zeros((numberofbins,numberofdays,maxage,2))
-        pref[:,0,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A gaussian of preference with center around 0
-        if prefvariance[q]<0.015:
-            pref[:,0,0,0]=flynum
+    #print(np.floor(numberofbins/2))
+    for q in range(numconditions): # for loop for each condition
+        pref=np.zeros((numberofbins,numberofdays,maxage,2)) # Matrix, [bins, days, maxage, bh vs. reducebh]
+        #reducebethedge=np.zeros((numberofbins,numberofdays,maxage,2))
+        if prefvariance[q]>=0.015: # Gaussian when prefvariance is more than 0.015
+            pref[:,0,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A fly's first day preference gaussian of preference with center around 0
+        else: # Make the bin in the middle have all the flies
+            pref[math.floor(numberofbins/2),0,0,0]=flynum
 
         pref[:,0,0,0]=pref[:,0,0,0]/np.sum(pref[:,0,0])*flynum # total # of flies=flynum
-        pref[:,1,1,0]=pref[:,0,0,0]
-        #print(pref[:,0,0])
-        reducebethedge[:,0,0,0]=sci.norm.pdf(x,prefmean[q],np.multiply(prefvariance[q],percentbh)) # A gaussian of preference with center around 0 
-        if prefvariance[q]<0.015:
-            reducebethedge[:,0,0,0]=flynum
-        reducebethedge[:,0,0,0]=reducebethedge[:,0,0,0]/np.sum(reducebethedge[:,0,0,0])*flynum # total # of flies=flynum
+        pref[:,1,1,0]=pref[:,0,0,0] # Fly ages to 1, day changes to 1, set the same as initial
+        if prefvariance[q]>=0.015*percentbh:
+            pref[:,0,0,1]=sci.norm.pdf(x,prefmean[q],np.multiply(prefvariance[q],percentbh)) # A gaussian of preference with center around 0 
+        else:
+            pref[math.floor(numberofbins/2),0,0,1]=flynum
+        pref[:,0,0,1]=pref[:,0,0,1]/np.sum(pref[:,0,0,1])*flynum # total # of flies=flynum
         #print(reducebethedge[:,0,0])
 
         envi=np.zeros((numberofbins,numberofdays))
         envi[:,0]=sci.norm.pdf(x,envimean,envivariance) # A gaussian of environment with center around 0
-        envi=envi/(np.max(envi))*deathrate
-        driftadvantage=np.zeros((numberofdays))
+        envi=envi/(np.max(envi))*maxsurvivalrate # Normalizing the maximum envi value and factoring in deathrate
+        driftadvantage=np.zeros((numberofdays)) 
         betadvantage=np.zeros((numberofdays))
-        blur=np.zeros((numberofbins,numberofbins,2))
+        blur=np.zeros((numberofbins,numberofbins,2)) # [which bin profile it's for, what the distribution is between that bin and all other bins, 2]
 
         for b in range(numberofbins):
-            blur[b,:,0]=sci.norm.pdf(x,x[b],driftvariance[q]) # ***** drift
-            blur[b,:,1]=sci.norm.pdf(x,x[b],driftvariance[q])
+            blur[b,:,0]=sci.norm.pdf(x,x[b],driftvariance[q]) 
+            blur[b,:,1]=sci.norm.pdf(x,x[b],driftvariance[q]) #Made both to compare reducedrift with drift, but never implemented
         for t in range(1,numberofdays):
             for w in range(2):
                 #print(pref[:,t,0])
-                if w==0:
-                    pref[:,t,0,0]=pref[:,0,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0])
-                    #print(pref[:,t,0,0])
-                if w==1:
-                    pref[:,t,0,1]=reducebethedge[:,0,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0])
-                    #print(pref[:,t,0,1])
-                    # print(bh)
-                    # print(bh-pref[:,t,0])
-                #print(pref[:,t,0])
-                envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance)
-                envi[:,t]=envi[:,t]/np.max(envi[:,t])*deathrate
+                pref[:,t,0,w]=pref[:,0,0,w]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0]) # Calculate newborn flies
+
+                envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance) # Making envi a sin wave that changes over time
+                envi[:,t]=envi[:,t]/np.max(envi[:,t])*maxsurvivalrate # Normalizing the envi and multiplying by maxsurvival rate
 
                 for a in range(maxage):
-                    driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a,0], envi[:,t])) #Should extend to include BH
+                    driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a,0], envi[:,t])) # Calculating the number of flies that survive without drift #Should extend to include BH
                     #print(driftadvantage[t])
 
                 for a in range(maxage):
@@ -60,7 +56,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                         # print(pref[b,t-1,a,0])
                         for b in range(numberofbins):
                             if prefvariance[q]<0.015:
-                                pref[:,t,a,w]+=pref[b,t-1,a,0]
+                                pref[:,t,a,w]+=pref[b,t-1,a,0] 
                             if prefvariance[q]>0.015:
                                 pref[:,t,a,w]+=pref[b,t-1,a,0]*blur[b,:,w]/np.sum(blur[b,:,w])
                             #pref[:,t,a]+=pref[b,t-1,a]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
@@ -114,9 +110,10 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         plt.show
 
         finalpop[q]=np.sum(pref[:,-1,:,0])
-return finalpop;
+        
+    return finalpop;
 
-print (finalpop)
+# print (finalpop)
 
 # def heatmap():
 #     #[finalpop]=sd.driftmodeling(flynum, numberofbins, numberofdays, prefmean[q], prefvariance[q], envimean, envivariance, driftvariance[q], gain, per,deathrate,birthrate,matureage, percentbh)
