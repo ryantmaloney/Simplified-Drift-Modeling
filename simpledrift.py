@@ -13,12 +13,12 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
     for q in range(numconditions): # for loop for each condition
         pref=np.zeros((numberofbins,numberofdays,maxage,2)) # Matrix, [bins, days, maxage, bh vs. reducebh]
         #reducebethedge=np.zeros((numberofbins,numberofdays,maxage,2))
-        if prefvariance[q]>=0.015: # Gaussian when prefvariance is more than 0.015
+        if prefvariance[q]>=0.015/percentbh: # Gaussian when prefvariance is more than 0.015
             pref[:,0,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A fly's first day preference gaussian of preference with center around 0
         else: # Make the bin in the middle have all the flies
             print('Zero bet-hedging')
             pref[math.floor(numberofbins/2),0,0,0]=flynum
-            print(pref[:,0,0,0])
+            #print(pref[:,0,0,0])
 
         pref[:,0,0,0]=pref[:,0,0,0]/np.sum(pref[:,0,0,0])*flynum # total # of flies=flynum
         pref[:,1,1,0]=pref[:,0,0,0] # Fly ages to 1, day changes to 1, set the same as initial
@@ -43,18 +43,27 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         for b in range(numberofbins):
             blur[b,:,0]=sci.norm.pdf(x,x[b],driftvariance[q])
             blur[b,:,1]=sci.norm.pdf(x,x[b],driftvariance[q]) #Made both to compare reducedrift with drift, but never implemented
+
         for t in range(1,numberofdays):
             for w in range(2):
                 #print(pref[:,t,0])
+                #tic = time.perf_counter()
                 pref[:,t,0,w]=pref[:,0,0,w]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0]) # Calculate newborn flies
 
                 envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance) # Making envi a sin wave that changes over time
                 envi[:,t]=envi[:,t]/np.max(envi[:,t])*maxsurvivalrate # Normalizing the envi and multiplying by maxsurvival rate
+                # toc = time.perf_counter()
+                # print(toc-tic)
 
+                #hi = time.perf_counter()
                 for a in range(maxage):
                     driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a,0], envi[:,t])) # Calculating the number of flies that survive without drift #Should extend to include BH
                     #print(driftadvantage[t])
+                # bye = time.perf_counter()
+                # print(bye-hi)
 
+                #one = time.perf_counter()
+                #TAKES ABOUT 10X LONGER
                 for a in range(maxage):
                     #pref[:,t,a]+=pref[:,t-1,a]
                     #not sure why this line was here!
@@ -67,11 +76,14 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                                 pref[:,t,a,w]+=pref[b,t-1,a,0]*blur[b,:,w]/np.sum(blur[b,:,w])
                             #pref[:,t,a]+=pref[b,t-1,a]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
                     pref[:,t,a,w]=np.multiply(pref[:,t,a,w], envi[:,t]) # Multiplying the preference to the environment
+                # two = time.perf_counter()
+                # print(two-one)
 
             driftadvantage[t]=np.sum(pref[:,t,:])-driftadvantage[t]
             betadvantage[t]=np.sum(pref[:,t,0,0]-pref[:,t,0,1])
             pref[:,t,1:,0]=pref[:,t,:-1,0]
 
+        before = time.perf_counter()
         fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1)
         fig.set_figwidth(10)
         fig.set_figheight(12)
@@ -114,15 +126,10 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         fig.suptitle('Bet-hedge variance: '+str(prefvariance[q])+', Drift variance: '+str(driftvariance[q]), y=-.05, fontsize=16)
 
         plt.show
+        after = time.perf_counter()
+        print(after-before)
 
         finalpop[q]=np.sum(pref[:,-1,:,0])
 
     return finalpop;
 
-# print (finalpop)
-
-# def heatmap():
-#     #[finalpop]=sd.driftmodeling(flynum, numberofbins, numberofdays, prefmean[q], prefvariance[q], envimean, envivariance, driftvariance[q], gain, per,deathrate,birthrate,matureage, percentbh)
-#     print(finalpop[q])
-#     # plt.imshow(finalpop, cmap='hot', interpolation='nearest')
-#     # plt.show()
