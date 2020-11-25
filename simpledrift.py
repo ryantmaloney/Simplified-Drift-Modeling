@@ -4,29 +4,38 @@ import matplotlib.pyplot as plt
 import time
 import math
 
+# 1. Start from scratch and recode
+    # General format and rewrite
+    # Hide all code except comments and recode from there
+
+# 2. Document every single step (make a figure/visualize variable)
+    # Make a flowchart for the program
+    # Then go back and recode
+
 def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, maxsurvivalrate, birthrate, matureage, percentbh):
     x=np.linspace(-1,1,numberofbins) # number of bins between -1 and 1
     maxage=30 #maximum age
     numconditions=len(prefvariance) # Number of conditions based on the total conditions we're running
     finalpop=np.zeros((numconditions))
     #print(np.floor(numberofbins/2))
+
     for q in range(numconditions): # for loop for each condition
         pref=np.zeros((numberofbins,numberofdays,maxage,2)) # Matrix, [bins, days, maxage, bh vs. reducebh]
         #reducebethedge=np.zeros((numberofbins,numberofdays,maxage,2))
         if prefvariance[q]>=0.015/percentbh: # Gaussian when prefvariance is more than 0.015
             pref[:,0,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A fly's first day preference gaussian of preference with center around 0
         else: # Make the bin in the middle have all the flies
-            print('Zero bet-hedging')
+            #print('Zero bet-hedging')
             pref[math.floor(numberofbins/2),0,0,0]=flynum
             #print(pref[:,0,0,0])
 
         pref[:,0,0,0]=pref[:,0,0,0]/np.sum(pref[:,0,0,0])*flynum # total # of flies=flynum
         pref[:,1,1,0]=pref[:,0,0,0] # Fly ages to 1, day changes to 1, set the same as initial
 
-        if prefvariance[q]>=0.015/percentbh:
+        if prefvariance[q]>=0.015:
             pref[:,0,0,1]=sci.norm.pdf(x,prefmean[q],np.multiply(prefvariance[q],percentbh)) # A gaussian of preference with center around 0
         else:
-            print('Also Zero bet-hedging')
+            #print('Also Zero bet-hedging')
             pref[math.floor(numberofbins/2),0,0,1]=flynum
         pref[:,0,0,1]=pref[:,0,0,1]/np.sum(pref[:,0,0,1])*flynum # total # of flies=flynum
         #print(reducebethedge[:,0,0])
@@ -83,7 +92,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
             betadvantage[t]=np.sum(pref[:,t,0,0]-pref[:,t,0,1])
             pref[:,t,1:,0]=pref[:,t,:-1,0]
 
-        before = time.perf_counter()
+        #before = time.perf_counter()
         fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1)
         fig.set_figwidth(10)
         fig.set_figheight(12)
@@ -126,10 +135,9 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         fig.suptitle('Bet-hedge variance: '+str(prefvariance[q])+', Drift variance: '+str(driftvariance[q]), y=-.05, fontsize=16)
 
         plt.show
-        after = time.perf_counter()
-        print(after-before)
+        #after = time.perf_counter()
+        #print(after-before)
 
         finalpop[q]=np.sum(pref[:,-1,:,0])
 
     return finalpop
-
