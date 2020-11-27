@@ -6,16 +6,3 @@ import simpledrift as sd
 
 #sd.driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per,maxsurvivalrate,birthrate,matureage, percentbh)
 
-def hello(hi):
-    sigh=hi+3
-    return sigh
-
-def bye(sigh):
-    hello(hi)
-
-
-# def heatmap(matrix):
-#     matrixlog=np.log(matrix)
-#     plt.pcolor(matrixlog, cmap='hot')
-#     plt.colorbar()
-#     plt.show()
