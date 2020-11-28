@@ -21,7 +21,7 @@ def matrixmaker(bhlower, bhupper, driftlower, driftupper):
     birthrate=40
     matureage=10
     percentbh=0.01
-    intervals=10
+    intervals=5
     matrix=np.zeros((intervals,intervals))
     prefvariance=np.linspace(bhlower, bhupper, intervals)
     driftvariance=np.linspace(driftlower, driftupper, intervals)
@@ -33,6 +33,7 @@ def matrixmaker(bhlower, bhupper, driftlower, driftupper):
     print(matrix)
 
     matrixlog=np.log(matrix)
+    print(matrixlog)
 
     fig,ax=plt.subplots()
     c=ax.pcolor(matrixlog, cmap='hot')

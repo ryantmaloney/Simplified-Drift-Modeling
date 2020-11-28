@@ -32,6 +32,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
             pref[:,0,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A fly's first day preference gaussian of preference with center around 0
         else: # Make the bin in the middle have all the flies
             #print('Zero bet-hedging')
+            #pref[50,0,0,0]=flynum
             pref[math.floor(numberofbins/2),0,0,0]=flynum
             #print(pref[:,0,0,0])
 
@@ -42,6 +43,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
             pref[:,0,0,1]=sci.norm.pdf(x,prefmean[q],np.multiply(prefvariance[q],percentbh)) # A gaussian of preference with center around 0
         else:
             #print('Also Zero bet-hedging')
+            #pref[50,0,0,1]=flynum
             pref[math.floor(numberofbins/2),0,0,1]=flynum
         pref[:,0,0,1]=pref[:,0,0,1]/np.sum(pref[:,0,0,1])*flynum # total # of flies=flynum
         #print(reducebethedge[:,0,0])
@@ -59,17 +61,20 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
             blur[b,:,1]=sci.norm.pdf(x,x[b],driftvariance[q]) #Made both to compare reducedrift with drift, but never implemented
 
         for t in range(1,numberofdays):
+            print('t is: '+str(t))
             for w in range(2):
-                #print(pref[:,t,0])
-                #tic = time.perf_counter()
+                print(w)
+                print('hi1')
                 pref[:,t,0,w]=pref[:,0,0,w]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0]) # Calculate newborn flies
 
+                print('hi2')
                 envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance) # Making envi a sin wave that changes over time
                 envi[:,t]=envi[:,t]/np.max(envi[:,t])*maxsurvivalrate # Normalizing the envi and multiplying by maxsurvival rate
                 # toc = time.perf_counter()
                 # print(toc-tic)
 
                 #hi = time.perf_counter()
+                print('hi3')
                 for a in range(maxage):
                     driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a,0], envi[:,t])) # Calculating the number of flies that survive without drift #Should extend to include BH
                     #print(driftadvantage[t])
@@ -78,6 +83,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
 
                 #one = time.perf_counter()
                 #TAKES ABOUT 10X LONGER
+                print('hi4')
                 for a in range(maxage):
                     #pref[:,t,a]+=pref[:,t-1,a]
                     #not sure why this line was here!
@@ -86,52 +92,53 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                         for b in range(numberofbins):
                             if driftvariance[q]<0.015:
                                 pref[b,t,a,w]+=pref[b,t-1,a,0]
-                            if driftvariance[q]>0.015:
+                            else:
                                 pref[:,t,a,w]+=pref[b,t-1,a,0]*blur[b,:,w]/np.sum(blur[b,:,w])
                             #pref[:,t,a]+=pref[b,t-1,a]*sci.norm.pdf(x,x[b],driftvariance)/np.sum(sci.norm.pdf(x,x[b],driftvariance))
                     pref[:,t,a,w]=np.multiply(pref[:,t,a,w], envi[:,t]) # Multiplying the preference to the environment
                 # two = time.perf_counter()
                 # print(two-one)
 
+            print('hi5')
             driftadvantage[t]=np.sum(pref[:,t,:])-driftadvantage[t]
             betadvantage[t]=np.sum(pref[:,t,0,0]-pref[:,t,0,1])
             pref[:,t,1:,0]=pref[:,t,:-1,0]
 
         #before = time.perf_counter()
-        # fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1)
-        # fig.set_figwidth(10)
-        # fig.set_figheight(12)
-        # fig.tight_layout()
-        # plt.subplots_adjust(hspace=.6)
-        # c=ax0.pcolormesh(envi)
-        # fig.colorbar(c,ax=ax0)
-        # ax0.set_title('Environment (color is fraction of flies of given pref survive)')
-        # ax0.set_ylabel('Preference')
-        # ax0.set_xlabel('Day')
+        fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1)
+        fig.set_figwidth(10)
+        fig.set_figheight(12)
+        fig.tight_layout()
+        plt.subplots_adjust(hspace=.6)
+        c=ax0.pcolormesh(envi)
+        fig.colorbar(c,ax=ax0)
+        ax0.set_title('Environment (color is fraction of flies of given pref survive)')
+        ax0.set_ylabel('Preference')
+        ax0.set_xlabel('Day')
 
-        # c=ax1.pcolormesh(np.sum(pref[:,:,:,0],axis=2))
-        # fig.colorbar(c,ax=ax1)
-        # ax1.set_title('Fly Preference (color is log(num) flies each day)')
-        # ax1.set_ylabel('Preference')
-        # ax1.set_xlabel('Day')
+        c=ax1.pcolormesh(np.sum(pref[:,:,:,0],axis=2))
+        fig.colorbar(c,ax=ax1)
+        ax1.set_title('Fly Preference (color is log(num) flies each day)')
+        ax1.set_ylabel('Preference')
+        ax1.set_xlabel('Day')
 
-        plt.plot(np.log(np.sum(pref[:,:,:,0],axis=(0,2))))
-        plt.set_title('total log(num) flies)') # lowest value is 0.0001 (prefvariance = 0.01 with percent bh=0.01)
-        plt.set_ylabel('log(num) flies)')
-        plt.set_xlabel('Day')
-        plt.set_xlim(0,numberofdays)
+        ax2.plot(np.log(np.sum(pref[:,:,:,0],axis=(0,2))))
+        ax2.set_title('total log(num) flies)') # lowest value is 0.0001 (prefvariance = 0.01 with percent bh=0.01)
+        ax2.set_ylabel('log(num) flies)')
+        ax2.set_xlabel('Day')
+        ax2.set_xlim(0,numberofdays)
 
-        # ax3.plot(driftadvantage/np.sum(pref[:,:,:,0],axis=(0,2)))
-        # ax3.set_title('Change in death rate due to last day\'s drift ')
-        # ax3.set_ylabel('∆surviving flies/total flies')
-        # ax3.set_xlabel('Day')
-        # ax3.set_xlim(0,numberofdays)
+        ax3.plot(driftadvantage/np.sum(pref[:,:,:,0],axis=(0,2)))
+        ax3.set_title('Change in death rate due to last day\'s drift ')
+        ax3.set_ylabel('∆surviving flies/total flies')
+        ax3.set_xlabel('Day')
+        ax3.set_xlim(0,numberofdays)
 
-        # ax4.plot(betadvantage/np.sum(pref[:,:,:,0],axis=(0,2)))
-        # ax4.set_title('Change in death rate due to last day\'s bethedging ')
-        # ax4.set_ylabel('∆surviving flies/total flies')
-        # ax4.set_xlabel('Day')
-        # ax4.set_xlim(0,numberofdays)
+        ax4.plot(betadvantage/np.sum(pref[:,:,:,0],axis=(0,2)))
+        ax4.set_title('Change in death rate due to last day\'s bethedging ')
+        ax4.set_ylabel('∆surviving flies/total flies')
+        ax4.set_xlabel('Day')
+        ax4.set_xlim(0,numberofdays)
 
         fig.colorbar(c,ax=ax2)
         fig.colorbar(c,ax=ax3)
