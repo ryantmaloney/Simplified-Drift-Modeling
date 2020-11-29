@@ -5,13 +5,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import simpledrift as sd
+import math
+from joblib import Parallel, delayed
 
-
-def matrixmaker(bhlower, bhupper, driftlower, driftupper):
+def matrixmaker(bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval):
 
     flynum=1
     numberofbins=100
-    numberofdays=50
+    numberofdays=100
     prefmean=0
     envimean=0
     envivariance=.25
@@ -21,28 +22,57 @@ def matrixmaker(bhlower, bhupper, driftlower, driftupper):
     birthrate=40
     matureage=10
     percentbh=0.01
-    intervals=5
-    matrix=np.zeros((intervals,intervals))
-    prefvariance=np.linspace(bhlower, bhupper, intervals)
-    driftvariance=np.linspace(driftlower, driftupper, intervals)
+    # intervals=16
+    showgraphs=True
+    prefvariance=np.linspace(bhlower, bhupper, bhinterval)
+    driftvariance=np.linspace(driftlower, driftupper, driftinterval)
 
-    for x in range(intervals):
-        for y in range(intervals):
-            finalpop=sd.driftmodeling(flynum, numberofbins, numberofdays, prefmean, [prefvariance[x]], envimean, envivariance, [driftvariance[y]], gain, per,maxsurvivalrate,birthrate,matureage, percentbh)
-            matrix[x,y]=finalpop
-    print(matrix)
+    numruns=bhinterval*driftinterval
 
+    #testing values are right
+    # for n in range(numruns):
+    #     print('driftvariance'+str(driftvariance[math.floor(n/bhinterval)])+ 'prefvariance'+ str(prefvariance[n%bhinterval]))
+
+
+    flatmatrix=np.zeros(numruns)
+
+    # for x in range(bhinterval):
+    flatmatrix[:]=Parallel(n_jobs=-1, verbose=10)(delayed(sd.driftmodeling)(flynum, numberofbins, numberofdays, prefmean, [prefvariance[n%bhinterval]], envimean, envivariance, [driftvariance[math.floor(n/bhinterval)]], gain, per,maxsurvivalrate,birthrate,matureage, percentbh, showgraphs, 'figs') for n in range(numruns))
+            # print(["Drift is: ", driftvariance[y], "Bet-hedging is: ", driftvariance[x]] )
+            # print(matrix)
+    print(flatmatrix)
+
+    # flatmatrix=np.matrix(flatmatrix)
+    # flatmatrix=
+    matrix=np.zeros((bhinterval,driftinterval))
+    matrix[:,:]=flatmatrix.reshape((bhinterval, driftinterval))
     matrixlog=np.log(matrix)
     print(matrixlog)
+    print(matrix)
+
+
+
+    bhmargin=(bhupper-bhlower)/(bhinterval-1)/2
+    driftmargin=(driftupper-driftlower)/(driftinterval-1)/2
+    prefvariancemesh=np.linspace(bhlower-bhmargin, bhupper+bhmargin, bhinterval+1)
+    driftvariancemesh=np.linspace(driftlower-driftmargin, driftupper+driftmargin, driftinterval+1)
+    print(prefvariancemesh)
+    print(driftvariancemesh)
+
+# driftvariancegrid2, prefvariancegrid2= np.meshgrid(driftvariance, prefvariance)
+
+    # print(matrix)
 
     fig,ax=plt.subplots()
-    c=ax.pcolor(matrixlog, cmap='hot')
-    ax.set_xlabel('Bet Hedging')
-    ax.set_ylabel('Drift')
-    fig.colorbar(c)
+    scale=max(-np.min(matrixlog),np.max(matrixlog))
+    c=ax.pcolormesh(driftvariancemesh, prefvariancemesh, matrixlog, shading='flat', cmap='RdBu',  vmin=-scale, vmax=scale)
+
+
+    # c=ax.pcolormesh(driftvariancemesh, prefvariancemesh, matrixlog, shading='flat', cmap='RdBu',  vmin=-20, vmax=20)
+    ax.set_xlabel('Drift')
+    ax.set_ylabel('Bet-Hedging')
+    fig.colorbar(c, ax=ax)
     ax.set_title('Log of Final Population')
     plt.show()
 
-    return matrix
-        
-        
+    return matrix, driftvariance, prefvariance
