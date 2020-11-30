@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import simpledrift as sd
 import math
 from joblib import Parallel, delayed
+import os
 
 def matrixmaker(bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval):
 
@@ -24,6 +25,7 @@ def matrixmaker(bhlower, bhupper, bhinterval, driftlower, driftupper, driftinter
     percentbh=0.01
     # intervals=16
     showgraphs=True
+    figuresavepath='figs'
     prefvariance=np.linspace(bhlower, bhupper, bhinterval)
     driftvariance=np.linspace(driftlower, driftupper, driftinterval)
 
@@ -37,7 +39,7 @@ def matrixmaker(bhlower, bhupper, bhinterval, driftlower, driftupper, driftinter
     flatmatrix=np.zeros(numruns)
 
     # for x in range(bhinterval):
-    flatmatrix[:]=Parallel(n_jobs=-1, verbose=10)(delayed(sd.driftmodeling)(flynum, numberofbins, numberofdays, prefmean, [prefvariance[n%bhinterval]], envimean, envivariance, [driftvariance[math.floor(n/bhinterval)]], gain, per,maxsurvivalrate,birthrate,matureage, percentbh, showgraphs, 'figs') for n in range(numruns))
+    flatmatrix[:]=Parallel(n_jobs=-1, verbose=10)(delayed(sd.driftmodeling)(flynum, numberofbins, numberofdays, prefmean, [prefvariance[n%bhinterval]], envimean, envivariance, [driftvariance[math.floor(n/bhinterval)]], gain, per,maxsurvivalrate,birthrate,matureage, percentbh, showgraphs, figuresavepath) for n in range(numruns))
             # print(["Drift is: ", driftvariance[y], "Bet-hedging is: ", driftvariance[x]] )
             # print(matrix)
     print(flatmatrix)
@@ -45,7 +47,7 @@ def matrixmaker(bhlower, bhupper, bhinterval, driftlower, driftupper, driftinter
     # flatmatrix=np.matrix(flatmatrix)
     # flatmatrix=
     matrix=np.zeros((bhinterval,driftinterval))
-    matrix[:,:]=flatmatrix.reshape((bhinterval, driftinterval))
+    matrix[:,:]=flatmatrix.reshape((bhinterval, driftinterval), order='F')
     matrixlog=np.log(matrix)
     print(matrixlog)
     print(matrix)
@@ -73,6 +75,12 @@ def matrixmaker(bhlower, bhupper, bhinterval, driftlower, driftupper, driftinter
     ax.set_ylabel('Bet-Hedging')
     fig.colorbar(c, ax=ax)
     ax.set_title('Log of Final Population')
-    plt.show()
+    plt.show
+
+    if os.path.exists(figuresavepath):
+        fig.savefig(os.path.join(figuresavepath,'heatmap.png'),bbox_inches='tight', pad_inches=.3)
+        print(figuresavepath)
+    else:
+        print('not saving, no valid path')
 
     return matrix, driftvariance, prefvariance

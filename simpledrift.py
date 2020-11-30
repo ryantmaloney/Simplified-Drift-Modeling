@@ -29,7 +29,10 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         # print(driftvariance[q])
         pref=np.zeros((numberofbins,numberofdays,maxage,2)) # Matrix, [bins, days, maxage, bh vs. reducebh]
         #reducebethedge=np.zeros((numberofbins,numberofdays,maxage,2))
-        if prefvariance[q]>=0.015/percentbh: # Gaussian when prefvariance is more than 0.015
+
+        # Set pref[:,0,0,0], which is the "reduced bet hedge version"
+
+        if prefvariance[q]>=0.015:  #Check if variance is so small to just eliminate bet-hedging
             pref[:,0,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A fly's first day preference gaussian of preference with center around 0
         else: # Make the bin in the middle have all the flies
             #print('Zero bet-hedging')
@@ -40,8 +43,10 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
         pref[:,0,0,0]=pref[:,0,0,0]/np.sum(pref[:,0,0,0])*flynum # total # of flies=flynum
         pref[:,1,1,0]=pref[:,0,0,0] # Fly ages to 1, day changes to 1, set the same as initial
 
-        if prefvariance[q]>=0.015:
-            pref[:,0,0,1]=sci.norm.pdf(x,prefmean[q],np.multiply(prefvariance[q],percentbh)) # A gaussian of preference with center around 0
+
+        # Now set pref[:,0,0,1], which is the "reduced bet hedge version"
+        if prefvariance[q]*percentbh>=0.015: #Check if variance is so small to just eliminate bet-hedging
+            pref[:,0,0,1]=sci.norm.pdf(x,prefmean[q],np.multiply(prefvariance[q],percentbh))
         else:
             #print('Also Zero bet-hedging')
             #pref[50,0,0,1]=flynum
@@ -77,7 +82,8 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                 #hi = time.perf_counter()
                 # print('hi3')
                 for a in range(maxage):
-                    driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a,0], envi[:,t])) # Calculating the number of flies that survive without drift #Should extend to include BH
+                    if w==0:
+                        driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a,0], envi[:,t])) # Calculating the number of flies that survive without drift #Should extend to include BH
                     #print(driftadvantage[t])
                 # bye = time.perf_counter()
                 # print(bye-hi)
@@ -91,7 +97,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                     if a>0:
                         # print(pref[b,t-1,a,0])
                         for b in range(numberofbins):
-                            if driftvariance[q]<0.015:
+                            if driftvariance[q]<.05/numberofbins: #check if blur is too low to be worth blurring. NOTE: This number should be based on the limit of sci.norm.pdf
                                 pref[b,t,a,w]+=pref[b,t-1,a,0]
                             else:
                                 pref[:,t,a,w]+=pref[b,t-1,a,0]*blur[b,:,w]/np.sum(blur[b,:,w])
@@ -101,7 +107,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
                 # print(two-one)
 
             # print('hi5')
-            driftadvantage[t]=np.sum(pref[:,t,:])-driftadvantage[t]
+            driftadvantage[t]=np.sum(pref[:,t,:,0])-driftadvantage[t]
             betadvantage[t]=np.sum(pref[:,t,0,0]-pref[:,t,0,1])
             pref[:,t,1:,0]=pref[:,t,:-1,0]
         if showgraphs:
