@@ -19,12 +19,13 @@ def matrixmaker(bhlower, bhupper, bhinterval, driftlower, driftupper, driftinter
     envivariance=.25
     gain=.4
     per=20
-    maxsurvivalrate=1
+    maxsurvivalrate=.5
     birthrate=40
     matureage=10
     percentbh=0.01
+    adaptivetracking=0
     # intervals=16
-    showgraphs=True
+    showgraphs=False
     figuresavepath='figs'
     prefvariance=np.linspace(bhlower, bhupper, bhinterval)
     driftvariance=np.linspace(driftlower, driftupper, driftinterval)

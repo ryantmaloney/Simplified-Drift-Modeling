@@ -13,12 +13,14 @@ import os
     # Make a flowchart for the program
     # Then go back and recode
 
-def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, gain, per, maxsurvivalrate, birthrate, matureage, percentbh, showgraphs, figuresavepath):
+def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, adaptivetracking, gain, per, maxsurvivalrate, birthrate, matureage, percentbh, showgraphs, figuresavepath):
+    # adaptivetracking=0
     x=np.linspace(-1,1,numberofbins) # number of bins between -1 and 1
     maxage=30 #maximum age
     prefvariance=np.array([prefvariance])
     prefmean=np.array([prefmean])
     driftvariance=np.array([driftvariance])
+    adaptivetracking=np.array([adaptivetracking])
     numconditions=max(prefvariance.shape) # Number of conditions based on the total conditions we're running
     finalpop=np.zeros((numconditions))
     #print(np.floor(numberofbins/2))
@@ -71,8 +73,11 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
             for w in range(2):
                 # print(w)
                 # print('hi1')
-                pref[:,t,0,w]=pref[:,0,0,w]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0]) # Calculate newborn flies
 
+
+                pref[:,t,0,w]=pref[:,0,0,w]*birthrate/flynum*np.sum(pref[:,t-1,matureage:,0]) # Calculate newborn flies
+                if adaptivetracking[q]>0:
+                    pref[:,t,0,w]=pref[:,t,0,w]*(1-adaptivetracking[q])+adaptivetracking[q]*birthrate*np.sum(pref[:,t-1,matureage:,0],1)
                 # print('hi2')
                 envi[:,t]=sci.norm.pdf(x,(envimean+gain*np.sin(t*np.pi*2/per)),envivariance) # Making envi a sin wave that changes over time
                 envi[:,t]=envi[:,t]/np.max(envi[:,t])*maxsurvivalrate # Normalizing the envi and multiplying by maxsurvival rate
@@ -81,6 +86,8 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
 
                 #hi = time.perf_counter()
                 # print('hi3')
+
+                driftadvantage
                 for a in range(maxage):
                     if w==0:
                         driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a,0], envi[:,t])) # Calculating the number of flies that survive without drift #Should extend to include BH
@@ -151,7 +158,7 @@ def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, en
             fig.colorbar(c,ax=ax3)
             fig.colorbar(c,ax=ax4)
 
-            fig.suptitle('Bet-hedge variance: '+str(prefvariance[q])+', Drift variance: '+str(driftvariance[q]), y=-.05, fontsize=16)
+            fig.suptitle('Bet-hedge variance: '+str(prefvariance[q])+', Drift variance: '+str(driftvariance[q])+', Adaptive Tracking: '+str(adaptivetracking[q]), y=-.05, fontsize=16)
 
             plt.show()
 
