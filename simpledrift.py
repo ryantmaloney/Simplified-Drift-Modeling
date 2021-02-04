@@ -4,6 +4,12 @@ import matplotlib.pyplot as plt
 import time
 import math
 import os
+import scipy.stats as stat
+
+
+import colorednoise as cn
+
+
 
 # 1. Start from scratch and recode
     # General format and rewrite
@@ -51,6 +57,51 @@ def randomwalk(numberofbins, numberofdays, envimean,envivariance, maxsurvivalrat
     for t in range(1,numberofdays):
         envimean+=np.random.normal(0,dailydrift)
         envi[:,t]=sci.norm.pdf(x,envimean,envivariance) # Making envi a sin wave that changes over time
+        envi[:,t]=envi[:,t]/np.max(envi[:,t])*maxsurvivalrate
+    return(envi)
+
+def metropolishastingsdrift(numberofbins, numberofdays, envimeanvariance, envivariance, maxsurvivalrate, dailydrift):
+    envi=np.zeros((numberofbins,numberofdays))
+    x=np.linspace(-1,1,numberofbins)
+    envimean=np.random.normal(0,envimeanvariance)
+    envi[:,0]=sci.norm.pdf(x, envimean, envivariance) # A gaussian of environment with center around 0
+
+    for t in range(1, numberofdays):
+        pcurrentvalue=stat.norm.pdf(envimean,0,envimeanvariance)
+        # proposedvalue=np.random.normal(0,variability)
+        proposedvalue=np.random.normal(0,envimeanvariance)*dailydrift+envimean*(1-dailydrift)
+
+        pproposedvalue=stat.norm.pdf(proposedvalue,0,envimeanvariance)
+        if pproposedvalue/pcurrentvalue>(1-np.random.rand()):
+            # return proposedvalue*percentdrift+currentvalue*(1-percentdrift)
+            envimean=proposedvalue
+        envi[:,t]=sci.norm.pdf(x, envimean, envivariance) # A gaussian of environment with center around 0
+        envi[:,t]=envi[:,t]/np.max(envi[:,t])*maxsurvivalrate
+    return(envi)
+
+def whitedrift(numberofbins, numberofdays, envimeanvariance, envivariance, maxsurvivalrate, dailydrift):
+    envi=np.zeros((numberofbins,numberofdays))
+    x=np.linspace(-1,1,numberofbins)
+    # envimean=np.random.normal(0,envimeanvariance)
+
+    for t in range(1, numberofdays):
+        envimean=np.random.normal(0,envimeanvariance)
+        envi[:,t]=sci.norm.pdf(x, envimean, envivariance) # A gaussian of environment with center around 0
+        envi[:,t]=envi[:,t]/np.max(envi[:,t])*maxsurvivalrate
+
+    return(envi)
+
+def powerdrift(numberofbins, numberofdays, envimeanvariance, envivariance, maxsurvivalrate, power):
+    # beta = 1 # the exponent
+    samples = 100 # number of samples to generate
+    y = cn.powerlaw_psd_gaussian(power, numberofdays)*envimeanvariance
+
+    envi=np.zeros((numberofbins,numberofdays))
+    x=np.linspace(-1,1,numberofbins)
+    # envimean=np.random.normal(0,envimeanvariance)
+    # stat.norm.ppf()
+    for t in range(numberofdays):
+        envi[:,t]=sci.norm.pdf(x, y[t], envivariance) # A gaussian of environment with center around 0
         envi[:,t]=envi[:,t]/np.max(envi[:,t])*maxsurvivalrate
     return(envi)
 
