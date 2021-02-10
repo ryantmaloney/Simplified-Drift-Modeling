@@ -108,7 +108,7 @@ def powerdrift(numberofbins, numberofdays, envimeanvariance, envivariance, maxsu
 # def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, adaptivetracking, gain, per, maxsurvivalrate, birthrate, matureage, percentbh, showgraphs, figuresavepath):
     # adaptivetracking=0
 
-def driftmodeling(envi, prefmean, prefvariance, driftvariance, adaptivetracking, birthrate, matureage, percentbh, showgraphs, figuresavepath):
+def driftmodeling(envi, prefmean, prefvariance, driftvariance, adaptivetracking, birthrate, matureage, percentbh, showgraphs, figuresavepath, driftmaxdistribution=0):
     flynum=1
     numberofbins=envi.shape[0]
     numberofdays=envi.shape[1]
@@ -163,6 +163,11 @@ def driftmodeling(envi, prefmean, prefvariance, driftvariance, adaptivetracking,
 
         for b in range(numberofbins):
             blur[b,:]=sci.norm.pdf(x,x[b],driftvariance[q])
+            blur[b,:]/=np.sum(blur[b,:])
+        if driftmaxdistribution!=0:
+            for b in range(numberofbins):
+                blur[b,:]=blur[b,:]*sci.norm.pdf(x,0,driftmaxdistribution)
+                blur[b,:]/=np.sum(blur[b,:])
 
         for t in range(1,numberofdays):
 
@@ -178,8 +183,7 @@ def driftmodeling(envi, prefmean, prefvariance, driftvariance, adaptivetracking,
             numfliesborntoday=np.sum(pref[:,t,0])
 
             betadvantage[t]=np.sum(np.multiply(pref[:,t,0], envi[:,t]))-numfliesborntoday*envi[math.floor(numberofbins/2),t]
-
-
+            
             for a in range(maxage):
 
                 driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a-1], envi[:,t])) # Calculating the number of flies that survive without drift #Should extend to include BH

@@ -3,3 +3,4 @@
 *.pyc
 40x40.csv
 *.pyc
+*.npz
