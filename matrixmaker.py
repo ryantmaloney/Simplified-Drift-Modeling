@@ -9,7 +9,7 @@ import math
 from joblib import Parallel, delayed
 import os
 
-def matrixmaker(envi, bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval, runindex=0):
+def matrixmaker(envi, bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval, showgraphs=False, figuresavepath='figs', runindex=0, fband=-1, freqmin=-1, freqmax=-1, power=-1, envimeanvariance=-1, envivariance=-1):
 
     # flynum=1
     # numberofbins=100
@@ -28,9 +28,8 @@ def matrixmaker(envi, bhlower, bhupper, bhinterval, driftlower, driftupper, drif
     percentbh=0.01
     adaptivetracking=0
     # intervals=16
-    showgraphs=False
 
-    figuresavepath='figs'
+    # figuresavepath='figs'
     prefvariance=np.linspace(bhlower, bhupper, bhinterval)
     driftvariance=np.linspace(driftlower, driftupper, driftinterval)
 
@@ -55,7 +54,7 @@ def matrixmaker(envi, bhlower, bhupper, bhinterval, driftlower, driftupper, drif
     matrix[:,:]=flatmatrix.reshape((bhinterval, driftinterval), order='F')
     matrixlog=np.log(matrix)
     # print(matrixlog)
-    # print(matrix)
+    print(matrix)
 
 
 
@@ -65,28 +64,48 @@ def matrixmaker(envi, bhlower, bhupper, bhinterval, driftlower, driftupper, drif
     driftvariancemesh=np.linspace(driftlower-driftmargin, driftupper+driftmargin, driftinterval+1)
     # print(prefvariancemesh)
     # print(driftvariancemesh)
-
-# driftvariancegrid2, prefvariancegrid2= np.meshgrid(driftvariance, prefvariance)
+    # driftvariancegrid2, prefvariancegrid2= np.meshgrid(driftvariance, prefvariance)
 
     # print(matrix)
 
-    fig,ax=plt.subplots()
+    fig, (ax1, ax2)=plt.subplots(2, 1)
+
+    fig.set_figwidth(10)
+    fig.set_figheight(12)
+    fig.tight_layout()
+    plt.subplots_adjust(hspace=.3)
+    ax1.set_xlabel('Day')
+    ax1.set_ylabel('Bin')
+
+    if freqmin>=0:
+        ax1.set_title('Environment (Filtered to '+str(round(freqmin, 3))+' - '+str(round(freqmax,3))+' cycles/day')
+    else:
+        ax1.set_title('Environment')
+
+
+    b=ax1.pcolormesh(envi)
+    fig.colorbar(b, ax=ax1)
+
+
     scale=max(-np.min(matrixlog),np.max(matrixlog))
-    c=ax.pcolormesh(driftvariancemesh, prefvariancemesh, matrixlog, shading='flat', cmap='RdBu',  vmin=-scale, vmax=scale)
-
-
-    # c=ax.pcolormesh(driftvariancemesh, prefvariancemesh, matrixlog, shading='flat', cmap='RdBu',  vmin=-20, vmax=20)
-    ax.set_xlabel('Drift')
-    ax.set_ylabel('Bet-Hedging')
-    fig.colorbar(c, ax=ax)
-    ax.set_title('Log of Final Population')
-    plt.show
+    c=ax2.pcolormesh(driftvariancemesh, prefvariancemesh, matrixlog, shading='flat', cmap='RdBu', vmin=-scale, vmax=scale)
+    
+    ax2.set_xlabel('Drift')
+    ax2.set_ylabel('Bet-Hedging')
+    fig.colorbar(c, ax=ax2)
+    ax2.set_title('Log of Final Population')
+    plt.show()
 
     if os.path.exists(figuresavepath):
         heatmapname='R'+str(runindex)+'_heatmap.png'
-        fig.savefig(os.path.join(figuresavepath,heatmapname),bbox_inches='tight', pad_inches=.3)
         filename='R'+str(runindex)+'_Env_FinalPopulations.npz'
-        np.savez(os.path.join(figuresavepath,filename), finalpopulations=matrix, prefvariancemesh=prefvariancemesh, driftvariancemesh=driftvariancemesh, envi=envi)
+
+        if fband!=-1:
+            heatmapname='F'+str(fband)+'_R'+str(runindex)+'_heatmap.png'
+            filename='F'+str(fband)+'_R'+str(runindex)+'_Env_FinalPopulations.npz'
+
+        fig.savefig(os.path.join(figuresavepath,heatmapname),bbox_inches='tight', pad_inches=.3)
+        np.savez(os.path.join(figuresavepath,filename), finalpopulations=matrix, prefvariancemesh=prefvariancemesh, driftvariancemesh=driftvariancemesh, envi=envi, freqmin=freqmin, freqmax=freqmax, power=power, envimeanvariance=envimeanvariance, envivariance=envivariance)
         print(figuresavepath)
     else:
         print('not saving, no valid path')

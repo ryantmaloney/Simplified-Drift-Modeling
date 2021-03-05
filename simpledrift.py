@@ -91,7 +91,7 @@ def whitedrift(numberofbins, numberofdays, envimeanvariance, envivariance, maxsu
 
     return(envi)
 
-def powerdrift(numberofbins, numberofdays, envimeanvariance, envivariance, maxsurvivalrate, power):
+def powerdrift(numberofbins=100, numberofdays=10, envimeanvariance=1, envivariance=.3, maxsurvivalrate=1, power=1):
     # beta = 1 # the exponent
     samples = 100 # number of samples to generate
     y = cn.powerlaw_psd_gaussian(power, numberofdays)*envimeanvariance
@@ -105,10 +105,130 @@ def powerdrift(numberofbins, numberofdays, envimeanvariance, envivariance, maxsu
         envi[:,t]=envi[:,t]/np.max(envi[:,t])*maxsurvivalrate
     return(envi)
 
+def makefilterednoise(numberofbins=100, numberofdays=50, envimeanvariance=.1, envivariance=.3, maxsurvivalrate=1, lowerbound=-1, upperbound=-1,  filtertype='bandpass', oversamplerate=2, lengthbuffer=1, power=0, normalizevariance='true'):
+    totallength=numberofdays*oversamplerate*lengthbuffer
+    s=cn.powerlaw_psd_gaussian(power, totallength)*envimeanvariance
+
+    frequencies=np.fft.fftfreq(len(s))
+
+
+    if upperbound>.5:
+        upperbound=.5
+        # print('anchoring to nyquist')
+
+    fs=np.zeros(len(s), dtype=complex)
+    if (upperbound<=0) and (lowerbound<=0):
+        filtertype='none'
+    elif upperbound<=0:
+        filtertype='highpass'
+    elif lowerbound<=0:
+        filtertype='lowpass'
+    # upperbound=.2
+    # lowerbound=.1
+    lowerbound/=oversamplerate
+    upperbound/=oversamplerate
+    
+    if lowerbound<frequencies[1]:
+        lowerbound=frequencies[1]
+
+    freqrange=upperbound-lowerbound
+    # print(frequencies)
+    
+    if filtertype !='none':
+        # reallowerneg=np.min(np.abs(-frequencies+lowerbound))
+        # lowerindexneg=int(np.where(np.abs(frequencies+lowerbound)==reallowerneg)[0][0])
+        # reallowerpos=np.min(np.abs(frequencies-lowerbound))
+        # lowerindexpos=int(np.where(frequencies==-frequencies[lowerindexneg])[0][0])
+        # realupper=np.min(np.abs(frequencies-upperbound))
+        # upperindexpos=int(np.where(np.abs(frequencies-upperbound)==realupper)[0][0])
+        # upperindexneg=int(np.where(frequencies==-frequencies[upperindexpos])[0][0])
+        # if upperindexneg-upperindexpos<=2:
+        #     upperindexpos+=2
+
+        # if lowerbound<=0:
+        #     lowerindexneg=0
+        # else:
+        #     lowerindexneg = (np.abs(frequencies - lowerbound)).argmin()
+        # reallower=frequencies[lowerindexneg]
+        # upperindexpos= (np.abs(frequencies - upperbound)).argmin()
+        # realupper=frequencies[upperindexpos]
+        # print(realupper)
+        # # print('LI+', lowerindexpos, frequencies[lowerindexpos])
+        # # print('LI-', lowerindexneg, frequencies[lowerindexneg])
+        # # print('UI+',upperindexpos, frequencies[upperindexpos])
+        # # print('UI-', upperindexneg, frequencies[upperindexneg])
+        fs=np.fft.fft(s)
+
+
+        lowerindexpos=-1
+        upperindexpos=-1
+        lowerindexneg=-1
+        upperindexneg=-1
+
+        if upperbound>max(np.abs(frequencies)):
+            upperbound=max(np.abs(frequencies)) #Set to nyquist frequency if above
+
+        for i in range(len(frequencies)):
+            if frequencies[i]>=lowerbound and lowerindexpos==-1:
+                reallower=frequencies[i]
+                lowerindexpos=i
+            if frequencies[i]>=upperbound and upperindexpos==-1:
+                realupper=frequencies[i]
+                upperindexpos=i
+            if -frequencies[-i]>=lowerbound and lowerindexneg==-1:
+                # reallower=frequencies[-i]
+                lowerindexneg=len(frequencies)-i
+            if -frequencies[-i]>=upperbound and upperindexneg==-1:
+                # realupper=frequencies[-i]
+                upperindexneg=len(frequencies)-i
+        if upperindexpos==-1:
+                upperindexpos=upperindexneg-1
+
+        print('LI+', lowerindexpos, frequencies[lowerindexpos])
+        print('LI-', lowerindexneg, frequencies[lowerindexneg])
+        print('UI+',upperindexpos, frequencies[upperindexpos])
+        print('UI-', upperindexneg, frequencies[upperindexneg])
+        if filtertype=='notch':
+            fs[lowerindexpos:upperindexpos].real=0
+            fs[upperindexneg:lowerindexneg].real=0
+        # fs[upperindexneg:lowerindexneg].real=np.random.uniform(0, 2*np.pi, (lowerindexneg-upperindexneg,))
+            fs[lowerindexpos:upperindexpos].imag=0
+            fs[upperindexneg:lowerindexneg].imag=0
+        elif filtertype=='bandpass':
+            fs[0:lowerindexpos]=0
+            fs[upperindexpos:upperindexneg]=0
+            fs[lowerindexneg:]=0
+        elif filtertype=='lowpass':
+            fs[upperindexpos:upperindexneg]=0
+        elif filtertype=='highpass':
+            fs[0:lowerindexpos]=0
+            fs[lowerindexneg:]=0
+        # fs[lowerindexpos:upperindexpos].imag=np.random.uniform(0, 2*np.pi, (upperindexpos-lowerindexpos,))
+        # fs[upperindexneg:lowerindexneg].imag=np.random.uniform(0, 2*np.pi, (lowerindexneg-upperindexneg,))
+        s=np.fft.ifft(fs)
+    us=s[0:-1:oversamplerate]
+
+    if normalizevariance:
+        us-=np.mean(us)
+        rms=np.mean(us**2)**.5
+        us/=rms
+        us*=envimeanvariance
+
+    # return s, us, fs
+    envi=np.zeros((numberofbins,numberofdays))
+    x=np.linspace(-1,1,numberofbins)
+
+    for t in range(numberofdays):
+        envi[:,t]=sci.norm.pdf(x, us[t], envivariance) # A gaussian of environment with center around 0
+        envi[:,t]=envi[:,t]/np.max(envi[:,t])*maxsurvivalrate
+
+    return(envi)
+
+
 # def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, adaptivetracking, gain, per, maxsurvivalrate, birthrate, matureage, percentbh, showgraphs, figuresavepath):
     # adaptivetracking=0
 
-def driftmodeling(envi, prefmean, prefvariance, driftvariance, adaptivetracking, birthrate, matureage, percentbh, showgraphs, figuresavepath, driftmaxdistribution=0):
+def driftmodeling(envi, prefmean, prefvariance, driftvariance, adaptivetracking=0, birthrate=40, matureage=10, percentbh=.1, showgraphs=False, figuresavepath='', driftmaxdistribution=0):
     flynum=1
     numberofbins=envi.shape[0]
     numberofdays=envi.shape[1]
