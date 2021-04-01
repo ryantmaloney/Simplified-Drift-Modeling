@@ -83,7 +83,7 @@ def matrixmaker(envi, bhlower, bhupper, bhinterval, driftlower, driftupper, drif
         ax1.set_title('Environment')
 
 
-    b=ax1.pcolormesh(envi)
+    b=ax1.pcolormesh(envi, cmap='Greys')
     fig.colorbar(b, ax=ax1)
 
 
@@ -101,7 +101,7 @@ def matrixmaker(envi, bhlower, bhupper, bhinterval, driftlower, driftupper, drif
         filename='R'+str(runindex)+'_Env_FinalPopulations.npz'
 
         if fband!=-1:
-            heatmapname='F'+str(fband)+'_R'+str(runindex)+'_heatmap.png'
+            heatmapname='F'+str(fband)+'_R'+str(runindex)+'_heatmap.pdf'
             filename='F'+str(fband)+'_R'+str(runindex)+'_Env_FinalPopulations.npz'
 
         fig.savefig(os.path.join(figuresavepath,heatmapname),bbox_inches='tight', pad_inches=.3)

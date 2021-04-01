@@ -4,3 +4,8 @@
 40x40.csv
 *.pyc
 *.npz
+Scratch.ipynb
+.ipynb_checkpoints/Scratch-checkpoint.ipynb
+test.py
+*.ai
+*.pdf

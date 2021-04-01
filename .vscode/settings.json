@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "/Users/ryanmaloney/anaconda3/bin/python"
+    "python.pythonPath": "/Users/ryanmaloney/opt/anaconda3/bin/python",
+    "jupyter.jupyterServerType": "local"
 }
