@@ -9,7 +9,7 @@ import math
 from joblib import Parallel, delayed
 import os
 
-def matrixmaker(envi, bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval, showgraphs=False, figuresavepath='figs',
+def matrixmaker(envi, bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval, showgraphs=False, figuresavepath='../Results/figs',
      runindex=0, fband=-1, freqmin=-1, freqmax=-1, power=-1, envimeanvariance=-1, envivariance=-1, birthrate=10, matureage=10):
 
     # flynum=1
