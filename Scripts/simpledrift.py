@@ -6,10 +6,7 @@ import math
 import os
 import scipy.stats as stat
 
-
 import colorednoise as cn
-
-
 
 # 1. Start from scratch and recode
     # General format and rewrite
@@ -159,7 +156,6 @@ def makefilterednoise(numberofbins=100, numberofdays=50, envimeanvariance=.1, en
         # # print('UI-', upperindexneg, frequencies[upperindexneg])
         fs=np.fft.fft(s)
 
-
         lowerindexpos=-1
         upperindexpos=-1
         lowerindexneg=-1
@@ -224,7 +220,6 @@ def makefilterednoise(numberofbins=100, numberofdays=50, envimeanvariance=.1, en
 
     return(envi)
 
-
 # def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, adaptivetracking, gain, per, maxsurvivalrate, birthrate, matureage, percentbh, showgraphs, figuresavepath):
     # adaptivetracking=0
 
@@ -257,8 +252,14 @@ def driftmodeling(envi, prefmean, prefvariance, driftvariance, adaptivetracking=
             #pref[50,0,0,0]=flynum
             pref[math.floor(numberofbins/2),0,0]=flynum
             #print(pref[:,0,0,0])
-
+        print(np.sum(pref[:,0,0]))
         pref[:,0,0]=pref[:,0,0]/np.sum(pref[:,0,0])*flynum # total # of flies=flynum
+        
+        #This line is to tweak the initial preferences to spread out the first generation to avoid generation aliasing
+        for i in range(1, matureage):
+          pref[:,0,i]=pref[:,0,1]/matureage
+        pref[:,0,1]=pref[:,0,1]/matureage
+
         # pref[:,1,1,0]=pref[:,0,0,0] # Fly ages to 1, day changes to 1, set the same as initial
 
 

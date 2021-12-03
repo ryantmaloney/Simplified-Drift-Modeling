@@ -10,10 +10,9 @@ i = os.getenv('SLURM_ARRAY_TASK_ID')
 # if i!>0:
 # i=1
 
-
 # If not running as part of a batch, then just set i=1
 if not isinstance(i, int):
-    i=1
+    i=1 
 
 print(i)
 
@@ -31,8 +30,6 @@ numberofdays=50
 
 # Parameters for generating stimuli
 # Currently set to 
-
-
 
 # lowerbound=.1
 # upperbound=.5
@@ -93,40 +90,30 @@ cm*=mod_brbands
 br=math.floor(i%cm/cd)
 # br=brbands[i_brbands]
 
-
-
-
 # for m in range(len(mabands)):
 #     for br in range(len(brbands)):
-#         for f in range(len(bands)-1):
+# #         for f in range(len(bands)-1):
 
 if f<len(bands)-1:
     lowerbound=bands[f]
     upperbound=bands[f+1]
-    # for i in range(numsims):
-        # display("Simulation:"+str(i))
+
     rw=sd.makefilterednoise(numberofdays=numberofdays, envimeanvariance=envimeanvariance, envivariance=envivariance, power=0, lowerbound=lowerbound, upperbound=upperbound, oversamplerate=oversamplerate)
-        # fig,ax=plt.subplots()
-        # c=ax.pcolormesh(rw)
-        # ax.set_xlabel('Day')
-        # ax.set_ylabel('Preference')
-        # fig.colorbar(c, ax=ax)
-        # plt.show()
 
-    mm.matrixmaker(rw, bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval, runindex=i, fband=f, envimeanvariance=envimeanvariance, envivariance=envivariance, power=power, freqmax=upperbound, freqmin=lowerbound, birthrate=brbands[br], matureage=mabands[m])
-        # print(matrix)
+    for m in range(len(mabands)):
+        for br in range(len(brbands)):
+            mm.matrixmaker(rw, bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval, runindex=i, fband=f, envimeanvariance=envimeanvariance, envivariance=envivariance, power=power, freqmax=upperbound, freqmin=lowerbound, birthrate=brbands[br], matureage=mabands[m])
 
-            # for i in range(numsims):
 if f==len(bands):
     rw=sd.makefilterednoise(numberofdays=numberofdays, envimeanvariance=envimeanvariance, envivariance=envivariance, power=0, oversamplerate=oversamplerate)
+    for m in range(len(mabands)):
+        for br in range(len(brbands)):
+            mm.matrixmaker(rw, bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval, runindex=i, fband='W', envimeanvariance=envimeanvariance, envivariance=envivariance, power=power, birthrate=brbands[br], matureage=mabands[m])
 
-    mm.matrixmaker(rw, bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval, runindex=i, fband='W', envimeanvariance=envimeanvariance, envivariance=envivariance, power=power, birthrate=brbands[br], matureage=mabands[m])
-
-if f==len(bands+1):
+if f==len(bands)+1:
     rw=sd.makefilterednoise(numberofdays=numberofdays, envimeanvariance=envimeanvariance, envivariance=envivariance, power=1, oversamplerate=oversamplerate)
-    mm.matrixmaker(rw, bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval, runindex=i, fband='P', envimeanvariance=envimeanvariance, envivariance=envivariance, power=1, birthrate=brbands[br], matureage=mabands[m])
+    
+    for m in range(len(mabands)):
+        for br in range(len(brbands)):
+            mm.matrixmaker(rw, bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval, runindex=i, fband='P', envimeanvariance=envimeanvariance, envivariance=envivariance, power=1, birthrate=brbands[br], matureage=mabands[m])
 
-#     geommean*=matrix
-#     arithmean+=matrix
-# arithmean/=numsims
-# geommean=np.power(geommean, 1/numsims)

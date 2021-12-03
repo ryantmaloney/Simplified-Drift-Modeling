@@ -10,3 +10,7 @@ test.py
 *.ai
 *.pdf
 Results/*
+Notebooks/*
+*.csv
+*.ipynb
+*.ipynb

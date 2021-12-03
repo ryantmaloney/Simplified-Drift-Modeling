@@ -6,8 +6,8 @@
 #SBATCH --mem-per-cpu=1024 # Memory per node in MB (see also --mem-per-cpu)
 #SBATCH --open-mode=append # Append when writing files
 #SBATCH --output=Logs/hostname_%j_array_%A-%a.out    # Standard output and error log
-#SBATCH --array=1-8                # Array range
+#SBATCH --array=1-11                # Array range
 #SBATCH 
 module load Anaconda3/2019.10
 source activate drift
-python clusterscript.py
+python phaseplot.py

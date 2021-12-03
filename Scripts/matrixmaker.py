@@ -100,13 +100,11 @@ def matrixmaker(envi, bhlower, bhupper, bhinterval, driftlower, driftupper, drif
 
     if os.path.exists(figuresavepath):
         heatmapname='R'+str(runindex)+'_heatmap.png'
-        
         filename='BR'+str(birthrate)+'MA'+str(matureage)+'R'+str(runindex)+'_Env_FinalPopulations.npz'
 
         if fband!=-1:
             heatmapname='BR'+str(birthrate)+'MA'+str(matureage)+'F'+str(fband)+'_R'+str(runindex)+'_heatmap.pdf'
             filename='BR'+str(birthrate)+'MA'+str(matureage)+'F'+str(fband)+'_R'+str(runindex)+'_Env_FinalPopulations.npz'
-
         fig.savefig(os.path.join(figuresavepath,heatmapname),bbox_inches='tight', pad_inches=.3)
         np.savez(os.path.join(figuresavepath,filename),
             finalpopulations=matrix,
