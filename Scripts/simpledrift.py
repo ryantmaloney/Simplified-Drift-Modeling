@@ -112,7 +112,7 @@ def makefilterednoise(numberofbins=100, numberofdays=50, envimeanvariance=.1, en
 
     if upperbound>.5:
         upperbound=.5
-        # print('anchoring to nyquist')
+        print('anchoring to nyquist')
 
     fs=np.zeros(len(s), dtype=complex)
     if (upperbound<=0) and (lowerbound<=0):
@@ -241,11 +241,12 @@ def meantofullenvi(envimeans, envimeanvariance, envivariance, numberofbins=100, 
 # def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, adaptivetracking, gain, per, maxsurvivalrate, birthrate, matureage, percentbh, showgraphs, figuresavepath):
     # adaptivetracking=0
 
-def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetracking=0, birthrate=40, matureage=10, percentbh=.1, showgraphs=False, figuresavepath='', driftmaxdistribution=0, envimeanvariance=1, envivariance=1):
+def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetracking=0, birthrate=40, matureage=10, percentbh=.1, showgraphs=False, figuresavepath='', driftmaxdistribution=0, envimeanvariance=1, envivariance=1, savealldays=True):
 
     if len(envi.shape)==1:
       envi=meantofullenvi(envi, envimeanvariance, envivariance) 
 
+    
     flynum=1
     numberofbins=envi.shape[0]
     numberofdays=envi.shape[1]
@@ -321,6 +322,17 @@ def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetra
             # envi[:,t]=envi[:,t]/np.max(envi[:,t])*maxsurvivalrate # Normalizing the envi and multiplying by maxsurvival rate
             # # print('t is: '+str(t))
             # for w in range(2):
+#             print(pref[:,t-1,0:-1])
+            if driftvariance > .05/numberofbins:
+              pref[:,t,1:]=blur[:,:].T @ pref[:,t-1,0:-1] #drift
+            else:
+              pref[:,t,1:]=pref[:,t-1,0:-1]
+#             pref[:,t,:]=np.multiply(pref[:,t,:], envi[:,t]) # Multiplying the preference to the environment
+#             deadflies=np.sum(pref[:,t,:])
+            pref[:,t,:]=envi[:,t:t+1] * pref[:,t,:]
+#             print("Dead flies")
+#             print(deadflies-np.sum(pref[:,t,:]))
+#             print(envi[:,t])
             pref[:,t,0]=pref[:,0,0]*birthrate/flynum*np.sum(pref[:,t-1,matureage:]) # Calculate newborn flies
             if adaptivetracking[q]>0:
                 pref[:,t,0]=pref[:,t,0]*(1-adaptivetracking[q])+adaptivetracking[q]*birthrate*np.sum(pref[:,t-1,matureage:],1)
@@ -330,18 +342,18 @@ def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetra
 
 #             betadvantage[t]=np.sum(np.multiply(pref[:,t,0], envi[:,t]))-numfliesborntoday*envi[math.floor(numberofbins/2),t] #Commented out because not used for simulations
             
-            for a in range(maxage):
-
-#                 driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a-1], envi[:,t])) # Calculating the number of flies that survive without drift #Should extend to include BH
-
-                if a>0:
-                    for b in range(numberofbins):
-                        if driftvariance[q]<.05/numberofbins: #check if blur is too low to be worth blurring. NOTE: This number should be based on the limit of sci.norm.pdf
-                            pref[b,t,a]+=pref[b,t-1,a-1]
-                        else:
-                            pref[:,t,a]+=pref[b,t-1,a-1]*blur[b,:]/np.sum(blur[b,:])
-                    pref[:,t,a]=np.multiply(pref[:,t,a], envi[:,t]) # Multiplying the preference to the environment
-
+#             for a in range(maxage):
+# 
+# #                 driftadvantage[t]+=np.sum(np.multiply(pref[:,t-1,a-1], envi[:,t])) # Calculating the number of flies that survive without drift #Should extend to include BH
+# 
+#                 if a>0:
+#                     for b in range(numberofbins):
+#                         if driftvariance[q]<.05/numberofbins: #check if blur is too low to be worth blurring. NOTE: This number should be based on the limit of sci.norm.pdf
+#                             pref[b,t,a]+=pref[b,t-1,a-1]
+#                         else:
+#                             pref[:,t,a]+=pref[b,t-1,a-1]*blur[b,:]/np.sum(blur[b,:])
+#                     pref[:,t,a]=np.multiply(pref[:,t,a], envi[:,t]) # Multiplying the preference to the environment
+            
 #             driftadvantage[t]=np.sum(pref[:,t,:])-driftadvantage[t]-numfliesborntoday #Commented out because not used for simulations
             # print(np.sum(pref[:,t,0]))
             # print(np.sum(pref[:,t-1,matureage:]))
@@ -410,6 +422,9 @@ def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetra
                 print('not saving, no valid path')
         #after = time.perf_counter()
         #print(after-before)
-        finalpop=pd.Series(np.sum(pref[:,:,:], axis=(0,2)), name='Populations')
+        if savealldays:
+            finalpop=pd.Series(np.sum(pref[:,:,:], axis=(0,2)), name='Populations')
+        else:
+            finalpop=pd.Series(np.sum(pref[:,-1,:], axis=(0,1)), name='Populations')
 
     return finalpop

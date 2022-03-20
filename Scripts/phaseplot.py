@@ -98,23 +98,19 @@ envivariance=.1+i_envivariance*.1
 cd=cm
 cm*=mod_fbands
 f=math.floor(i%cm/cd)
-# envivariance=.3
 
 cd=cm
 cm*=mod_mabands
 m=math.floor(i%cm/cd)
-# m=mabands[i_mabands]
 
 cd=cm
 cm*=mod_brbands
 br=math.floor(i%cm/cd)
-# br=brbands[i_brbands]
 
 if f<len(bands)-1:
     lowerbound=bands[f]
     upperbound=bands[f+1]
-    # for i in range(numsims):
-        # display("Simulation:"+str(i))
+
     rw=sd.makefilterednoise(numberofdays=numberofdays, envimeanvariance=envimeanvariance, envivariance=envivariance, power=0, lowerbound=lowerbound, upperbound=upperbound,
             lengthbuffer=lengthbuffer, oversamplerate=oversamplerate)
         # fig,ax=plt.subplots()
@@ -127,4 +123,3 @@ if f<len(bands)-1:
         for br in range(len(brbands)):
             mm.matrixmaker(rw, bhlower, bhupper, bhinterval, driftlower, driftupper, driftinterval, runindex=i, fband=f, envimeanvariance=envimeanvariance, envivariance=envivariance, power=power, freqmax=upperbound, freqmin=lowerbound, birthrate=brbands[br],
              matureage=mabands[m])
-

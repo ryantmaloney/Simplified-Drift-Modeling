@@ -4,6 +4,7 @@
 # pay attention to axes so they give the correct values
 import numpy as np
 import matplotlib.pyplot as plt
+from numpy.lib.npyio import save
 import simpledrift as sd
 import math
 from joblib import Parallel, delayed
@@ -12,7 +13,7 @@ import pandas as pd
 
 def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 1, 4), showgraphs=False, figuresavepath='../Results/figs',
      runindex=0, environtype=-1, freqmin=-1, freqmax=-1, power=-1, envimeanvariance=[.1], envivariance=[.1], birthrate=[10], matureage=[10],
-     nameprefix=""):
+     nameprefix="", savealldays=True, savedata=True, saveenv=True):
 
     # flynum=1
     # numberofbins=100
@@ -46,19 +47,26 @@ def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 
 
     # for x in range(bhinterval):
 
-    iterables=[matureage, birthrate, envivariance, envimeanvariance, bhstrats, driftstrats]
+    iterables=[matureage, np.round(birthrate,3), np.round(envivariance,3), np.round(envimeanvariance,3), np.round(bhstrats,3), np.round(driftstrats,3)]
+#     interables=np.round(iterables,3)
+#     print(iterables)
     index=pd.MultiIndex.from_product(iterables, names=["matureage", "birthrate", "envvar", "envmeanvar", "bet-hedging", "drift", ])
 
     allseries=Parallel(n_jobs=-1, verbose=10)(delayed(sd.driftmodeling)(envi, prefmean,
-        prefvariance=i[4], driftvariance=i[5], adaptivetracking=adaptivetracking, birthrate=i[1],matureage=i[0], showgraphs=showgraphs, figuresavepath=figuresavepath, envimeanvariance=i[3], envivariance=i[2]) for i in index)
+        prefvariance=i[4], driftvariance=i[5], adaptivetracking=adaptivetracking, birthrate=i[1],matureage=i[0], showgraphs=showgraphs, figuresavepath=figuresavepath, envimeanvariance=i[3], envivariance=i[2], savealldays=savealldays) for i in index)
             # print(["Drift is: ", driftvariance[y], "Bet-hedging is: ", driftvariance[x]] )
             # print(matrix)
     dataframe=pd.DataFrame(allseries, index=index, dtype='float')
-    
-    columnnames=np.empty(dataframe.shape[1], dtype='object')
-    for i in range(dataframe.shape[1]):
-        columnnames[i]='Day '+str(i)
-    dataframe.columns=columnnames
+    if savealldays:
+        columnnames=np.empty(dataframe.shape[1], dtype='object')
+        for i in range(dataframe.shape[1]):
+            columnnames[i]='Day '+str(i)
+        dataframe.columns=columnnames
+    else:
+        columnnames=np.empty(dataframe.shape[1], dtype='object')
+        for i in range(dataframe.shape[1]):
+            columnnames[i]='Day '+str(envi.shape[0])
+        dataframe.columns=columnnames 
     # matrix=np.zeros((bhinterval,driftinterval))
 #     matrix[:,:]=flatmatrix.reshape((bhinterval, driftinterval), order='F')
 #     matrixlog=np.log(matrix)
@@ -125,10 +133,12 @@ def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 
 #         envivariance=envivariance, birthrate=birthrate,
 #         matureage=matureage)
         pqtname=filename+'_Populations.parquet'
-        dataframe.to_parquet(path=os.path.join(figuresavepath,pqtname))
+        if savedata:
+            dataframe.to_parquet(path=os.path.join(figuresavepath,pqtname))
         
         enviname=filename+'_env'
-        np.save(os.path.join(figuresavepath,enviname), envi)
+        if saveenv:
+            np.save(os.path.join(figuresavepath,enviname), envi)
 #         print(figuresavepath)
     else:
         print('not saving, no valid path')
