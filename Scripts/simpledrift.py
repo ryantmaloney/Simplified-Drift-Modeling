@@ -6,7 +6,7 @@ import math
 import os
 import scipy.stats as stat
 import pandas as pd
-
+import plotly.express as px
 import colorednoise as cn
 
 # 1. Start from scratch and recode
@@ -181,10 +181,10 @@ def makefilterednoise(numberofbins=100, numberofdays=50, envimeanvariance=.1, en
         if upperindexpos==-1:
                 upperindexpos=upperindexneg-1
 
-        print('LI+', lowerindexpos, frequencies[lowerindexpos])
-        print('LI-', lowerindexneg, frequencies[lowerindexneg])
-        print('UI+',upperindexpos, frequencies[upperindexpos])
-        print('UI-', upperindexneg, frequencies[upperindexneg])
+        # print('LI+', lowerindexpos, frequencies[lowerindexpos])
+        # print('LI-', lowerindexneg, frequencies[lowerindexneg])
+        # print('UI+',upperindexpos, frequencies[upperindexpos])
+        # print('UI-', upperindexneg, frequencies[upperindexneg])
         if filtertype=='notch':
             fs[lowerindexpos:upperindexpos].real=0
             fs[upperindexneg:lowerindexneg].real=0
@@ -241,10 +241,13 @@ def meantofullenvi(envimeans, envimeanvariance, envivariance, numberofbins=100, 
 # def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, adaptivetracking, gain, per, maxsurvivalrate, birthrate, matureage, percentbh, showgraphs, figuresavepath):
     # adaptivetracking=0
 
-def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetracking=0, birthrate=40, matureage=10, percentbh=.1, showgraphs=False, figuresavepath='', driftmaxdistribution=0, envimeanvariance=1, envivariance=1, savealldays=True):
+def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetracking=0, birthrate=40, matureage=10, percentbh=.1, showgraphs=False, figuresavepath='', driftmaxdistribution=.3, envimeanvariance=1, envivariance=1, numberofbins=1000, savealldays=True):
 
-    if len(envi.shape)==1:
-      envi=meantofullenvi(envi, envimeanvariance, envivariance) 
+    if len(envi.squeeze().shape)==1:
+
+        envi=meantofullenvi(envimeans=envi, envimeanvariance=envimeanvariance, envivariance=envivariance, numberofbins=numberofbins) 
+        # print(envi.shape)
+        # fig.
 
     
     flynum=1
@@ -252,7 +255,7 @@ def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetra
     numberofdays=envi.shape[1]
 
     x=np.linspace(-1,1,numberofbins) # number of bins between -1 and 1
-    maxage=30 #maximum age
+    maxage=4*matureage #maximum age
     prefvariance=np.array([prefvariance])
     prefmean=np.array([prefmean])
     driftvariance=np.array([driftvariance])
@@ -268,7 +271,9 @@ def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetra
         pref=np.zeros((numberofbins,numberofdays,maxage)) # Matrix, [bins, days, maxage]
         #reducebethedge=np.zeros((numberofbins,numberofdays,maxage,2))
         # Set pref[:,0,0,0], which is the "reduced bet hedge version"
-        if prefvariance[q]>=0.015:  #Check if variance is so small to just eliminate bet-hedging
+        # if prefvariance[q]>=0.015:  #Check if variance is so small to just eliminate bet-hedging
+        if prefvariance[q]>=.05/numberofbins:  #Check if variance is so small to just eliminate bet-hedging
+
             pref[:,0,0]=sci.norm.pdf(x,prefmean[q],prefvariance[q]) # A fly's first day preference gaussian of preference with center around 0
         else: # Make the bin in the middle have all the flies
             #print('Zero bet-hedging')
@@ -313,8 +318,12 @@ def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetra
             blur[b,:]/=np.sum(blur[b,:])
         if driftmaxdistribution!=0:
             for b in range(numberofbins):
+                boundingdistribution=sci.norm.pdf(x,0,driftmaxdistribution)
                 blur[b,:]=blur[b,:]*sci.norm.pdf(x,0,driftmaxdistribution)
-                blur[b,:]/=np.sum(blur[b,:])
+
+                if np.sum(blur[b,:]*sci.norm.pdf(x,0,driftmaxdistribution))>0:
+                    # blur[b,:]=blur[b,:]*sci.norm.pdf(x,0,driftmaxdistribution)
+                    blur[b,:]/=np.sum(blur[b,:])
 
         for t in range(1,numberofdays):
 
@@ -323,7 +332,7 @@ def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetra
             # # print('t is: '+str(t))
             # for w in range(2):
 #             print(pref[:,t-1,0:-1])
-            if driftvariance > .05/numberofbins:
+            if driftvariance > .05/numberofbins/10:
               pref[:,t,1:]=blur[:,:].T @ pref[:,t-1,0:-1] #drift
             else:
               pref[:,t,1:]=pref[:,t-1,0:-1]
@@ -428,3 +437,4 @@ def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetra
             finalpop=pd.Series(np.sum(pref[:,-1,:], axis=(0,1)), name='Populations')
 
     return finalpop
+
