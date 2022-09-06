@@ -14,10 +14,25 @@ i = os.getenv('SLURM_ARRAY_TASK_ID')
 print(i)
 
 
-fbands=1/2**np.arange(1,11, 1)[:0:-1]
+# fbands=1/2**np.arange(1,11, 1)[:0:-1]
+# per=1/fbands
+# print(per)
+# matureagematch=np.int64(per[-2:0:-1])
+
+
+# Version for September 2022
+fbands=1/2**np.arange(1,10.5, .5)[:0:-1]
 per=1/fbands
 print(per)
 matureagematch=np.int64(per[-2:0:-1])
+# print(matureagematch)
+
+# #simple test
+# fbands=1/2**np.arange(1,10, 2)[:0:-1]
+# per=1/fbands
+# print(per)
+# matureagematch=np.int64(per[-2:0:-1])
+# print(matureagematch)
 
 mm.frequency_phaseplane(matureage=matureagematch,
 fbands=fbands,

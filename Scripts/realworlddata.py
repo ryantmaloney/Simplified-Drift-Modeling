@@ -46,20 +46,22 @@ numberofdays=100
 power=0
 # fsp='$SCRATCH/debivort_lab/Ryan/figs'
 fsp='../Results/figs'
-csvpath="wideform_interp10_NOAA_Data_transposed.csv"
+csvpath="AllChunks.csv"
+batchsize=100
+for j in range(batchsize):
+  index=i*batchsize+j
+  dtv.runSimulationOnline('AllChunks.csv', fsp, index)
+# envimeanvariance=.3
+# envivariance=.1 
+
+# for j in range(10):
+#   k=int(i*10+j)
+#   readcsv=pd.read_csv(csvpath, usecols=[k+1], skiprows=[1,2])
+#   f=readcsv.columns[0]
+
+#   csvnp=np.array(readcsv)
+#   env=dtv.convertTimeSeriestoEnv(csvnp, envimeanvariance=envimeanvariance,   envivariance=envivariance, length=100)
 
 
-envimeanvariance=.3
-envivariance=.1 
-
-for j in range(10):
-  k=int(i*10+j)
-  readcsv=pd.read_csv(csvpath, usecols=[k+1], skiprows=[1,2])
-  f=readcsv.columns[0]
-
-  csvnp=np.array(readcsv)
-  env=dtv.convertTimeSeriestoEnv(csvnp, envimeanvariance=envimeanvariance,   envivariance=envivariance, length=100)
-
-
-  mm.matrixmaker(env, bhlower, bhupper, bhinterval, driftlower, driftupper,  driftinterval, runindex=k, fband=f, envimeanvariance=envimeanvariance, envivariance=envivariance)
+#   mm.matrixmaker(env, bhlower, bhupper, bhinterval, driftlower, driftupper,  driftinterval, runindex=k, fband=f, envimeanvariance=envimeanvariance, envivariance=envivariance)
 

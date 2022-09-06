@@ -208,7 +208,9 @@ def makefilterednoise(numberofbins=100, numberofdays=50, envimeanvariance=.1, en
     if normalizevariance:
         us-=np.mean(us)
         rms=np.mean(us**2)**.5
-        us/=rms
+        if rms>0:
+            print(f"rms was {rms}")
+            us/=rms
         us*=envimeanvariance
 
     # return s, us, fs
@@ -229,7 +231,8 @@ def meantofullenvi(envimeans, envimeanvariance, envivariance, numberofbins=100, 
     if normalizevariance:
         envimeans-=np.mean(envimeans)
         rms=np.mean(envimeans**2)**.5
-        envimeans/=rms
+        if rms>0:
+            envimeans/=rms
         envimeans*=envimeanvariance
 
     for t in range(numberofdays):
@@ -241,7 +244,7 @@ def meantofullenvi(envimeans, envimeanvariance, envivariance, numberofbins=100, 
 # def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, adaptivetracking, gain, per, maxsurvivalrate, birthrate, matureage, percentbh, showgraphs, figuresavepath):
     # adaptivetracking=0
 
-def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetracking=0, birthrate=40, matureage=10, percentbh=.1, showgraphs=False, figuresavepath='', driftmaxdistribution=.3, envimeanvariance=1, envivariance=1, numberofbins=1000, savealldays=True):
+def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetracking=0, birthrate=40, matureage=10, percentbh=.1, showgraphs=False, figuresavepath='', driftmaxdistribution=.3, envimeanvariance=1, envivariance=1, numberofbins=1000, savealldays=True, deathscale=1):
 
     if len(envi.squeeze().shape)==1:
 
@@ -255,7 +258,7 @@ def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetra
     numberofdays=envi.shape[1]
 
     x=np.linspace(-1,1,numberofbins) # number of bins between -1 and 1
-    maxage=4*matureage #maximum age
+    maxage=2*matureage+10 #maximum age
     prefvariance=np.array([prefvariance])
     prefmean=np.array([prefmean])
     driftvariance=np.array([driftvariance])

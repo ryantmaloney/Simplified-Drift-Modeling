@@ -17,8 +17,9 @@ import xarray as xr
 from datetime import date
 
 def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 1, 4), showgraphs=False, figuresavepath='../Results/figs',
-     runindex=0, environtype=-1, freqmin=-1, freqmax=-1, power=-1, envimeanvariance=[.1], envivariance=[.1], birthrate=[10], matureage=[10],
+     runindex=0, environtype=-1, freqmin=-1, freqmax=-1, power=-1, envimeanvariance=[.3], envivariance=[.1], birthrate=[40], matureage=[10],
      numberofbins=100,
+     driftmaxdistribution=.3,
      nameprefix="", savealldays=True, savedata=True, saveenv=True):
 
     prefmean=0
@@ -41,8 +42,8 @@ def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 
         adaptivetracking=adaptivetracking, 
         birthrate=i[1],
         matureage=i[0],
-        # driftmaxdistribution=.3,
-        driftmaxdistribution=0,
+        driftmaxdistribution=driftmaxdistribution,
+        # driftmaxdistribution=0,
 
         showgraphs=showgraphs,
         figuresavepath=figuresavepath,
@@ -74,7 +75,8 @@ def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 
     else:
         columnnames=np.empty(dataframe.shape[1], dtype='object')
         for i in range(dataframe.shape[1]):
-            columnnames[i]=i
+            columnnames[i]=envi.shape[0]-1
+            print(i)
         dataframe.columns=columnnames 
     # matrix=np.zeros((bhinterval,driftinterval))
 #     matrix[:,:]=flatmatrix.reshape((bhinterval, driftinterval), order='F')
@@ -143,12 +145,16 @@ def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 
 #         matureage=matureage)
         # pqtname=filename+'_Populations.parquet'
         ncname=filename+"_Populations"
+        xdataframe=xr.DataArray(dataframe)
+        xdataframe=xdataframe.unstack().rename({"dim_1":"day"})
+        dataframe=xdataframe.unstack()
         if savedata:
-            print(ncname)
+            # print(ncname)
             # dataframe.to_parquet(path=os.path.join(figuresavepath,pqtname))
-            xdataframe=xr.DataArray(dataframe)
-            xdataframe.to_netcdf(ncname)
-        
+
+            xdataframe.to_netcdf(ncname+".nc")
+            dataframe=xdataframe.unstack()
+            
         enviname=filename+'_env'
         if saveenv:
             np.save(os.path.join(figuresavepath,enviname), envi)
@@ -210,8 +216,12 @@ def frequency_phaseplane(i=1, fbands=1/(np.arange(1,21)[:0:-1]*2), strategy_reso
         
         envda=xr.DataArray(np.expand_dims(us, 1), coords={"day": np.arange(numberofdays), "freq":[f]}, dims=["day", "freq"], name="envi")
         envda.swap_dims()
+        print(envda)
         if first_iteration:
-            x_all=xr.DataArray(dataframe, dims=("MultiIndex", "day")).unstack("MultiIndex")
+            if len(dataframe.shape)<3:
+                x_all=xr.DataArray(dataframe, dims=("MultiIndex", "day")).unstack("MultiIndex")
+            else:
+                x_all=dataframe
 
             # x_all=dataframe.to_xarray()
             x_all=x_all.expand_dims({"freq":[f]})
@@ -219,11 +229,15 @@ def frequency_phaseplane(i=1, fbands=1/(np.arange(1,21)[:0:-1]*2), strategy_reso
 
             x_all=xr.Dataset({"environment_mean":envda, "sim_results":x_all})
         else:
-            x=xr.DataArray(dataframe, dims=("MultiIndex", "day")).unstack("MultiIndex")
+            if len(dataframe.shape)<3:
+                x=xr.DataArray(dataframe, dims=("MultiIndex", "day")).unstack("MultiIndex")
+            else:
+                x=dataframe
         # x_all=x_all+x #But actual xarray concatenation
             # x.merge(x_all, join=outer)
             x=x.expand_dims({"freq":[f]})
             first_iteration=False
+            print(envda)
             x=xr.Dataset({"environment_mean":envda, "sim_results":x})
             x_all=xr.merge([x_all, x])
                         # x_all=xarray.merge([x_all, x], dim="freq")
@@ -236,6 +250,7 @@ def frequency_phaseplane(i=1, fbands=1/(np.arange(1,21)[:0:-1]*2), strategy_reso
     # savepath="../Results/figs/"
     today = date.today()
     filename=savepath+filename_prefix+str(today)+"_R"+str(i)+".nc"
+    print(f"Run saved at {filename}")
     x_all.to_netcdf(filename)
     return x_all
 
@@ -302,8 +317,136 @@ def makeMatureAgexFreqFigure(phaseplaneoutput):
             fig.layout[axis].title.text = ''
             fig.layout[axis].tickfont = dict(color = 'rgba(0,0,0,0)')
     fig.show()
+    fig.write_image('../Results/figs/MatureAgexFreq.pdf')
 
 def dailychangehistogram(phaseplaneoutput):
     return phaseplaneoutput
 
 
+def realworlddataPhaseSpace(realworlddata, i=1, strategy_resolution=51, numberofdays=101,
+ matureage=[10], envimeanvariance=[.1], birthrate=[20], envivariance=[.1], bhmax=.5, driftmax=.1, numberofbins=100,
+ savealldays=False,
+ savepath="../Results/", filename_prefix=""):
+    f=0
+    first_iteration=True
+    #Step 1: Make the core signals
+    try:
+        realworlddata=realworlddata.expand_dims("siteID")
+    except:
+        print("Processing multiple sites")
+    try:
+        realworlddata=realworlddata.expand_dims("variable")
+    except:
+        print("Processing Multiple Variables")
+    try:
+        realworlddata=realworlddata.expand_dims("chunk")
+    except:
+        print("Processing multiple Chunks")
+
+
+    for ii, i in enumerate(realworlddata['siteID']):
+        # print(i)
+        for ji, j in enumerate(realworlddata['variable']):
+            for ki, k in enumerate(realworlddata['chunk']):
+                # print(k)  
+                # 
+                if ~np.isnan(realworlddata[ii,ji,ki]).all():
+                    l=realworlddata[ii,ji,ki].copy()
+
+                    siteID=i["siteID"].values[()]
+                    variable=j["variable"].values[()]
+                    chunk=k["chunk"].values[()]
+                    # print(siteID, variable, chunk)
+                    # print(l)
+                    # print(i)
+                    # print(j)
+                    # print(k)
+                # f=fbands[fi]
+        # print(str("F"+str(f)+"_R"+str(i)))
+        # envi, us=sd.makefilterednoise(lowerbound=fbands[fi-1], upperbound=fbands[fi+1], numberofdays=numberofdays)
+                    # return l.values
+                    # l[0]=0
+                    #Run Simulations
+                    dataframe=matrixmaker(l.values, bhstrats=np.linspace(0, bhmax, strategy_resolution),
+                    driftstrats=np.linspace(0, driftmax, strategy_resolution),
+                    numberofbins=numberofbins,
+                    figuresavepath=savepath,
+                    # envivariance=np.linspace(.1, .3, 3),
+                    envimeanvariance=envimeanvariance,
+                    envivariance=envivariance,
+                    # birthrate=np.linspace(20,60,3, dtype=int),
+                    birthrate=birthrate,
+                    savealldays=savealldays,
+                    matureage=matureage,
+                    saveenv=False,
+                    # matureage=[10],
+                    # nameprefix=str("F"+str(np.round(f, 3))),
+                    runindex=0,
+                    savedata=False
+                    )
+                    # print(dataframe)
+
+
+                    #make environment into array that can be merged into xarray total
+                    # print(l)
+                    # envda=xr.DataArray(np.expand_dims(l, 1), coords={"day": np.arange(numberofdays), "siteID":siteID, "chunk":chunk, "variable":variable}, dims=["day", "siteID", "chunk", "variable"], name="envi")
+                    envda=l
+                    envda.swap_dims()
+                    if first_iteration:
+                        x_all=xr.DataArray(dataframe, dims=("MultiIndex", "day")).unstack("MultiIndex")
+
+                        # x_all=dataframe.to_xarray()
+                        # print(x_all)
+                        # x_all=x_all.expand_dims(coords={"day": np.arange(numberofdays),"siteID":siteID, "chunk":chunk, "variable":variable}, dims=["day", "siteID", "chunk", "variable"])
+                        first_iteration=False
+
+                        x_all=xr.Dataset({"environment_mean":envda, "sim_results":x_all})
+                        x_all=x_all.expand_dims(dim=["siteID", "variable", "chunk"])
+                    else:
+                        x=xr.DataArray(dataframe, dims=("MultiIndex", "day")).unstack("MultiIndex")
+                    # x_all=x_all+x #But actual xarray concatenation
+                        # x.merge(x_all, join=outer)
+                        # x=x.expand_dims({"siteID":siteID, "chunk":chunk, "variable":variable})
+                        first_iteration=False
+                        x=xr.Dataset({"environment_mean":envda, "sim_results":x})
+                        x=x.expand_dims(dim=["siteID", "variable", "chunk"])
+                        # print(x_all)
+                        # print(x)
+                        try:
+                            x_all=xr.combine_by_coords([x_all, x])
+                            f+=1
+                            # print(f)
+                        except:
+                            try:
+                                x_all=xr.concat([x_all,x], dim="siteID")
+                            except:
+                                x_all=xr.concat([x_all,x], dim="variable")
+                            # print("bug trying to combine runs")
+                            # return x_all, x
+
+                        # x_all=xr.merge([x_all, x])
+                                    # x_all=xarray.merge([x_all, x], dim="freq")
+        #                 break
+        #         else:
+        #             continue
+        #         break
+        #     else:
+        #         continue
+        #     break
+        # else:
+        #     continue
+        # break
+               
+                        
+
+
+                        # print('merged')conda
+                        # x_all=xarray.merge([x_all, x])
+
+    # Step 2, collate each run into one xarray
+    # print(x_all)
+    # savepath="../Results/figs/"
+    today = date.today()
+    filename=savepath+filename_prefix+str(today)+"_R"+str(i)+".nc"
+    # x_all.to_netcdf(filename)
+    return x_all
