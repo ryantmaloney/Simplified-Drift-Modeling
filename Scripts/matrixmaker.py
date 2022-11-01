@@ -15,6 +15,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import xarray as xr
 from datetime import date
+from sys import getsizeof
 
 def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 1, 4), showgraphs=False, figuresavepath='../Results/figs',
      runindex=0, environtype=-1, freqmin=-1, freqmax=-1, power=-1, envimeanvariance=[.3], envivariance=[.1], birthrate=[40], matureage=[10],
@@ -145,23 +146,23 @@ def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 
 #         matureage=matureage)
         # pqtname=filename+'_Populations.parquet'
         ncname=filename+"_Populations"
-        xdataframe=xr.DataArray(dataframe)
-        xdataframe=xdataframe.unstack().rename({"dim_1":"day"})
-        dataframe=xdataframe.unstack()
+        dataframe=xr.DataArray(dataframe)
+        dataframe=dataframe.unstack().rename({"dim_1":"day"})
+        # dataframe=dataframe.unstack()
         if savedata:
             # print(ncname)
             # dataframe.to_parquet(path=os.path.join(figuresavepath,pqtname))
 
-            xdataframe.to_netcdf(ncname+".nc")
-            dataframe=xdataframe.unstack()
-            
+            dataframe.to_netcdf(ncname+".nc")
+        dataframe=dataframe.unstack()
+        
         enviname=filename+'_env'
         if saveenv:
             np.save(os.path.join(figuresavepath,enviname), envi)
 #         print(figuresavepath)
     else:
         print('not saving, no valid path')
-
+    print(getsizeof(dataframe))
     return dataframe
 
 def frequency_phaseplane(i=1, fbands=1/(np.arange(1,21)[:0:-1]*2), strategy_resolution=51, numberofdays=101,
@@ -252,18 +253,25 @@ def frequency_phaseplane(i=1, fbands=1/(np.arange(1,21)[:0:-1]*2), strategy_reso
     filename=savepath+filename_prefix+str(today)+"_R"+str(i)+".nc"
     print(f"Run saved at {filename}")
     x_all.to_netcdf(filename)
+    print(getsizeof(x_all))
     return x_all
 
-def calcgeomean(listofinputs):
+def getallruns(listofinputs, day=1000):
     for i, input in enumerate(listofinputs):
+        print(i,input)
         sin=xr.open_dataset(input)
         sin.coords["Run"]=i
         sin=sin.expand_dims("Run")
+        sin=sin.isel(day=day)
         if i==0:
             allruns=sin
         else:
             allruns=allruns.merge(sin)
     return allruns
+
+def calcgeomean(allruns):
+    geomean=np.log10(allruns['sim_results'].squeeze()).mean(dim="Run")
+    return geomean  
 
 
 def makeMatureAgexFreqFigure2(phaseplaneoutput):

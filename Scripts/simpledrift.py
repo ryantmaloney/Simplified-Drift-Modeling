@@ -8,6 +8,7 @@ import scipy.stats as stat
 import pandas as pd
 import plotly.express as px
 import colorednoise as cn
+import xarray as xr
 
 # 1. Start from scratch and recode
     # General format and rewrite
@@ -244,7 +245,7 @@ def meantofullenvi(envimeans, envimeanvariance, envivariance, numberofbins=100, 
 # def driftmodeling(flynum, numberofbins, numberofdays, prefmean, prefvariance, envimean, envivariance, driftvariance, adaptivetracking, gain, per, maxsurvivalrate, birthrate, matureage, percentbh, showgraphs, figuresavepath):
     # adaptivetracking=0
 
-def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetracking=0, birthrate=40, matureage=10, percentbh=.1, showgraphs=False, figuresavepath='', driftmaxdistribution=.3, envimeanvariance=1, envivariance=1, numberofbins=1000, savealldays=True, deathscale=1):
+def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetracking=0, birthrate=40, matureage=10, percentbh=.1, showgraphs=False, figuresavepath='', driftmaxdistribution=.3, envimeanvariance=1, envivariance=1, numberofbins=1000, savealldays=True, saveallprefs=False, deathscale=1):
 
     if len(envi.squeeze().shape)==1:
 
@@ -317,13 +318,16 @@ def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetra
         blur=np.zeros((numberofbins,numberofbins)) # [which bin profile it's for, what the distribution is between that bin and all other bins, 2]
 
         for b in range(numberofbins):
-            blur[b,:]=sci.norm.pdf(x,x[b],driftvariance[q])
+            if driftvariance[q]>0:
+                blur[b,:]=sci.norm.pdf(x,x[b],driftvariance[q])
+            else:
+                blur[b, b]=1
+            # print(blur)
             blur[b,:]/=np.sum(blur[b,:])
         if driftmaxdistribution!=0:
             for b in range(numberofbins):
                 boundingdistribution=sci.norm.pdf(x,0,driftmaxdistribution)
                 blur[b,:]=blur[b,:]*sci.norm.pdf(x,0,driftmaxdistribution)
-
                 if np.sum(blur[b,:]*sci.norm.pdf(x,0,driftmaxdistribution))>0:
                     # blur[b,:]=blur[b,:]*sci.norm.pdf(x,0,driftmaxdistribution)
                     blur[b,:]/=np.sum(blur[b,:])
@@ -337,6 +341,9 @@ def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetra
 #             print(pref[:,t-1,0:-1])
             if driftvariance > .05/numberofbins/10:
               pref[:,t,1:]=blur[:,:].T @ pref[:,t-1,0:-1] #drift
+            elif driftvariance > 0:
+              pref[:,t,1:]=pref[:,t-1,0:-1]
+              print('rounded to zero')
             else:
               pref[:,t,1:]=pref[:,t-1,0:-1]
 #             pref[:,t,:]=np.multiply(pref[:,t,:], envi[:,t]) # Multiplying the preference to the environment
@@ -434,8 +441,11 @@ def driftmodeling(envi, prefmean=0, prefvariance=0, driftvariance=0, adaptivetra
                 print('not saving, no valid path')
         #after = time.perf_counter()
         #print(after-before)
-        if savealldays:
+        if savealldays & ~saveallprefs:
             finalpop=pd.Series(np.sum(pref[:,:,:], axis=(0,2)), name='Populations')
+        elif savealldays & saveallprefs:
+            # finalpop=xr.DataArray(pref, dims=["", "Day", ""])
+            finalpop=pd.DataFrame(np.sum(pref[:,:,:], axis=2))
         else:
             finalpop=pd.Series(np.sum(pref[:,-1,:], axis=(0,1)), name='Populations')
 
