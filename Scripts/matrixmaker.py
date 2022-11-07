@@ -21,7 +21,7 @@ def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 
      runindex=0, environtype=-1, freqmin=-1, freqmax=-1, power=-1, envimeanvariance=[.3], envivariance=[.1], birthrate=[40], matureage=[10],
      numberofbins=100,
      driftmaxdistribution=.3,
-     nameprefix="", savealldays=True, savedata=True, saveenv=True):
+     nameprefix="", saveallprefs=False, savealldays=True, savedata=True, saveenv=True):
 
     prefmean=0
     adaptivetracking=0
@@ -51,6 +51,7 @@ def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 
         envimeanvariance=i[3],
         envivariance=i[2],
         numberofbins=numberofbins,
+        saveallprefs=saveallprefs,
         # envivariance=.001,
         savealldays=savealldays) for i in index)
             # print(["Drift is: ", driftvariance[y], "Bet-hedging is: ", driftvariance[x]] )
