@@ -16,3 +16,4 @@ Notebooks/*
 *.ipynb
 *.ipynb
 *.ipynb
+.DS_Store
