@@ -11,8 +11,8 @@ import numpy as np
 
 
 i = os.getenv('SLURM_ARRAY_TASK_ID')
-# if i!>0:
-# i=1
+if ~isinstance(i, int):
+  i=1
 print(i)
 
 
@@ -40,10 +40,10 @@ envimeanvariance=np.linspace(0, .3, phasearray_size)
 mm.frequency_phaseplane(matureage=[10],
 fbands=fbands,
 numberofdays=101, bhmax=.3, driftmax=.3,
-strategy_resolution=41,
+strategy_resolution=11,
 numberofbins=200,
 envivariance=[.2],
-filename_prefix="FreqvsEnvironmentMean_1001days_x3ba_.2ev_R"+str(i),
+filename_prefix="FreqvsEnvironmentMean_101days_includingpref_.2ev_R"+str(i),
 envimeanvariance=envimeanvariance,
 savepath="../Results/10-20-22/",
 savealldays=True,
