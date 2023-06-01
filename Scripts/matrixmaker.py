@@ -16,6 +16,10 @@ import plotly.graph_objects as go
 import xarray as xr
 from datetime import date
 from sys import getsizeof
+import sys
+import gc
+
+# import netCDF4
 
 def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 1, 4), showgraphs=False, figuresavepath='../Results/figs',
      runindex=0, environtype=-1, freqmin=-1, freqmax=-1, power=-1, envimeanvariance=[.3], envivariance=[.1], birthrate=[40], matureage=[10],
@@ -63,7 +67,6 @@ def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 
         dataframe=xr.DataArray(data=allseries,
         coords={"Parameters":index, "Preferences":np.arange(allseriesshape[1]), "day":np.arange(allseriesshape[2])},
         dims=["Parameters", "Preferences", "day"])
-
 
         # np.save('index_findme', index)
         # dataframe.reset_index("Parameters").to_netcdf('find_me_please.nc')
@@ -233,16 +236,17 @@ def frequency_phaseplane(i=1, fbands=1/(np.arange(1,21)[:0:-1]*2), strategy_reso
     filename=savepath+filename_prefix+str(today)+"_R"+str(i)+".nc"
     print(f"Run saved at {filename}")
     x_all.to_netcdf(filename)
-    print(getsizeof(x_all))
+    print(actualsize(x_all))
     return x_all
 
 def getallruns(listofinputs, day=1000):
     for i, input in enumerate(listofinputs):
         print(i,input)
-        sin=xr.open_dataset(input)
+        sin=xr.load_dataset(input)
         sin.coords["Run"]=i
         sin=sin.expand_dims("Run")
-        sin=sin.isel(day=day)
+        if type(day) == int:
+            sin=sin.isel(day=day)
         if i==0:
             allruns=sin
         else:
@@ -373,8 +377,8 @@ def realworlddataPhaseSpace(realworlddata, i=1, strategy_resolution=51, numberof
                     savedata=False,
                     saveallprefs=saveallprefs,
                     )
-                    # print(dataframe)
-
+                    print(dataframe)
+                    dataframe=dataframe.squeeze()
 
                     #make environment into array that can be merged into xarray total
                     # print(l)
@@ -382,7 +386,8 @@ def realworlddataPhaseSpace(realworlddata, i=1, strategy_resolution=51, numberof
                     envda=l
                     envda.swap_dims()
                     if first_iteration:
-                        x_all=xr.DataArray(dataframe, dims=("MultiIndex", "day")).unstack("MultiIndex")
+                        # x_all=xr.DataArray(dataframe, dims=("MultiIndex", "day")).unstack("MultiIndex")
+                        x_all=dataframe
 
                         # x_all=dataframe.to_xarray()
                         # print(x_all)
@@ -392,7 +397,8 @@ def realworlddataPhaseSpace(realworlddata, i=1, strategy_resolution=51, numberof
                         x_all=xr.Dataset({"environment_mean":envda, "sim_results":x_all})
                         x_all=x_all.expand_dims(dim=["siteID", "variable", "chunk"])
                     else:
-                        x=xr.DataArray(dataframe, dims=("MultiIndex", "day")).unstack("MultiIndex")
+                        # x=xr.DataArray(dataframe, dims=("MultiIndex", "day")).unstack("MultiIndex")
+                        x=dataframe
                     # x_all=x_all+x #But actual xarray concatenation
                         # x.merge(x_all, join=outer)
                         # x=x.expand_dims({"siteID":siteID, "chunk":chunk, "variable":variable})
@@ -439,3 +445,17 @@ def realworlddataPhaseSpace(realworlddata, i=1, strategy_resolution=51, numberof
     filename=savepath+filename_prefix+str(today)+"_R"+str(i)+".nc"
     # x_all.to_netcdf(filename)
     return x_all
+
+def actualsize(input_obj):
+    memory_size = 0
+    ids = set()
+    objects = [input_obj]
+    while objects:
+        new = []
+        for obj in objects:
+            if id(obj) not in ids:
+                ids.add(id(obj))
+                memory_size += sys.getsizeof(obj)
+                new.append(obj)
+        objects = gc.get_referents(*new)
+    return memory_size
