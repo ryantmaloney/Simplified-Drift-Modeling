@@ -238,6 +238,7 @@ def runSimulationOnline(csvfile, filesavedir, linenumber):
 
 def calcmaxes(pathtosimresults):
   a=xr.load_dataset(pathtosimresults)
+  return a
   flag=False
   for emv in a["envmeanvar"]:
       for ma in a["matureage"]:
@@ -291,3 +292,42 @@ def combinealldata(listoffiles):
         a=a.merge(b, join="outer")
 
   return a
+
+def calculatedriftbhmax(dataset):
+  ## calculate max drift and bet-hedging for each envmeanvar and matureage
+  b=dataset
+  flag=False
+  for emv in dataset["envmeanvar"]:
+      for ma in dataset["matureage"]:
+          singlerun=dataset.sel({"envmeanvar":emv}).sel({"matureage":ma})
+          da=singlerun["df"].squeeze()
+          # print(da)
+          max1=da.max()
+
+          emvi=np.expand_dims(emv.data, axis=0)
+          mai=np.expand_dims(int(ma.data), axis=0)
+
+          maxdrifti=np.expand_dims(np.array(singlerun.where(singlerun==max1, drop=True)['drift']), axis=1)
+          maxbhi=np.expand_dims(np.array(singlerun.where(singlerun==max1, drop=True)['bet-hedging']), axis=1)
+          # print(maxdrifti.shape)
+          max_drift_i=xr.DataArray(data=maxdrifti,
+          coords={"envmeanvar":emvi, "matureage":mai},
+          name="maxdrifti")
+          max_bh_i=xr.DataArray(data=maxbhi,
+          coords={"envmeanvar":emvi, "matureage":mai},
+          name="maxbhi")
+          comb=xr.merge([max_drift_i, max_bh_i])
+          if flag:
+              # print(z)
+              # print(max_drift_i)
+              z=xr.merge([z, comb], join="outer")
+          else:
+              flag=True
+              z=comb
+          # b["max_drift_i"]=max_drift_i
+          # b[{"maxpop_drift_index":max_drift_i}]
+
+  b.merge(z)
+  return b
+  # max_drift_i
+  # z

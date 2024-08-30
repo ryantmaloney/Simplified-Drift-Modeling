@@ -1,4 +1,6 @@
 {
     "python.pythonPath": "/Users/ryanmaloney/opt/anaconda3/bin/python",
-    "jupyter.jupyterServerType": "local"
+    "jupyter.jupyterServerType": "local",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true
 }

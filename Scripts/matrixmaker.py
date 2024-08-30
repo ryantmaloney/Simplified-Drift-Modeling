@@ -18,36 +18,36 @@ from datetime import date
 from sys import getsizeof
 import sys
 import gc
+import seaborn as sns
 
 # import netCDF4
 
 def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 1, 4), showgraphs=False, figuresavepath='../Results/figs',
-     runindex=0, environtype=-1, freqmin=-1, freqmax=-1, power=-1, envimeanvariance=[.3], envivariance=[.1], birthrate=[40], matureage=[10],
+     runindex=0, environtype=-1, freqmin=-1, freqmax=-1, power=-1, envimeanvariance=[.3], envivariance=[.1], birthrate=[40], phi=[1], matureage=[10],
      numberofbins=100,
-     driftmaxdistribution=.3,
+     driftmaxdistribution=[.3],
      nameprefix="", saveallprefs=False, savealldays=True, savedata=True, saveenv=True):
 
     prefmean=0
     adaptivetracking=0
 
 
-    iterables=[matureage, np.round(birthrate,3), np.round(envivariance,3), np.round(envimeanvariance,3), np.round(bhstrats,3), np.round(driftstrats,3)]
+    iterables=[matureage, np.round(birthrate,3), np.round(envivariance,3), np.round(envimeanvariance,3), np.round(bhstrats,3), np.round(driftstrats,3), np.round(phi,3), np.round(driftmaxdistribution,3)]
 #     interables=np.round(iterables,3)
 #     print(iterables)
-    index=pd.MultiIndex.from_product(iterables, names=["matureage", "birthrate", "envvar", "envmeanvar", "bet-hedging", "drift", ])
+    index=pd.MultiIndex.from_product(iterables, names=["matureage", "birthrate", "envvar", "envmeanvar", "bet-hedging", "drift", "phi", "boundinggaussian"])
     # print(index)
+    print("Number of combinations: ", len(index))
 
     allseries=Parallel(n_jobs=-1, verbose=5)(delayed(sd.driftmodeling)(envi, prefmean,
         prefvariance=i[4],
-
-
-        # prefvariance=0, #bh disabled to look at the effect of the bounding box
+        phi=i[6],
 
         driftvariance=i[5], 
         adaptivetracking=adaptivetracking, 
         birthrate=i[1],
         matureage=i[0],
-        driftmaxdistribution=driftmaxdistribution,
+        driftmaxdistribution=i[7],
         # driftmaxdistribution=0,
 
         showgraphs=showgraphs,
@@ -131,7 +131,7 @@ def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 
 
         if savedata:
 
-            dataframe.to_netcdf(ncname+".nc")
+            dataframe.unstack().to_netcdf(ncname+".nc")
         dataframe=dataframe.unstack()
         
         enviname=filename+'_env'
@@ -146,7 +146,7 @@ def matrixmaker(envi, bhstrats=np.linspace(0, 1, 4), driftstrats=np.linspace(0, 
 def frequency_phaseplane(i=1, fbands=1/(np.arange(1,21)[:0:-1]*2), strategy_resolution=51, numberofdays=101,
  matureage=[10], envimeanvariance=[.1], birthrate=[20], envivariance=[.1], bhmax=.5, driftmax=.1, numberofbins=100,
  savealldays=False, saveallprefs=False,
- savepath="../Results/", filename_prefix=""):
+ savepath="../Results/", filename_prefix="", savechunks=True):
 
     control_res=3
 
@@ -212,18 +212,24 @@ def frequency_phaseplane(i=1, fbands=1/(np.arange(1,21)[:0:-1]*2), strategy_reso
             first_iteration=False
 
             x_all=xr.Dataset({"environment_mean":envda, "sim_results":x_all})
+            if savechunks:
+                x_all.to_netcdf(savepath+filename_prefix+str(i)+"_F"+str(f)+"_R"+str(i)+".nc")
         else:
-            if not savealldays:
-                x=dataframe.isel(day=0)
-            else:
-                x=dataframe
+            # if not savealldays:
+            #     x=dataframe.isel(day=0)
+            # else:
+            #     x=dataframe
+            x=dataframe
         # x_all=x_all+x #But actual xarray concatenation
             # x.merge(x_all, join=outer)
             x=x.expand_dims({"freq":[f]})
             first_iteration=False
             # print(envda)
             x=xr.Dataset({"environment_mean":envda, "sim_results":x})
-            x_all=xr.merge([x_all, x])
+            if savechunks:
+                x.to_netcdf(savepath+filename_prefix+str(i)+"_F"+str(f)+"_R"+str(i)+".nc")
+            else:
+                x_all=xr.merge([x_all, x])
                         # x_all=xarray.merge([x_all, x], dim="freq")
 
             # print('merged')conda
@@ -233,11 +239,14 @@ def frequency_phaseplane(i=1, fbands=1/(np.arange(1,21)[:0:-1]*2), strategy_reso
     # print(x_all)
     # savepath="../Results/figs/"
     today = date.today()
-    filename=savepath+filename_prefix+str(today)+"_R"+str(i)+".nc"
-    print(f"Run saved at {filename}")
-    x_all.to_netcdf(filename)
-    print(actualsize(x_all))
-    return x_all
+    if not savechunks:
+        filename=savepath+filename_prefix+str(today)+"_R"+str(i)+".nc"
+   
+        filename=savepath+filename_prefix+str(today)+"_R"+str(i)+".nc"
+        print(f"Run saved at {filename}")
+        x_all.to_netcdf(filename)
+        print(actualsize(x_all))
+    return
 
 def getallruns(listofinputs, day=1000):
     for i, input in enumerate(listofinputs):
@@ -278,22 +287,46 @@ def makeMatureAgexFreqFigure2(phaseplaneoutput):
 def makeMatureAgexFreqFigure(phaseplaneoutput):
 
     gap=.005
-    fig = make_subplots(rows=8, cols=7, shared_yaxes=True, vertical_spacing=gap, horizontal_spacing=gap)
+
+    numrows=len(phaseplaneoutput['freq'])+1
+    print(numrows)
+    # numrows=1
+    numrows=20
+    numcols=len(phaseplaneoutput['matureage'])
+    print(numcols)
+    numcols=25
+    # numcols=1
+    print(numcols, numrows)
+    
+    fig = make_subplots(rows=numrows, cols=numcols, shared_yaxes=False, vertical_spacing=gap, horizontal_spacing=gap)
+    # fig.update_layout(height=1200, width=1200)
+    # fig.show()
+    fig.update_layout(height=2400, width=2400)
 
     for j, freq in enumerate(np.array(phaseplaneoutput['freq'])):
-        envi=sd.meantofullenvi(envimeans=phaseplaneoutput["environment_mean"][:, j], envimeanvariance=float(phaseplaneoutput["envmeanvar"]), envivariance=float(phaseplaneoutput["envvar"]), numberofbins=100) 
-        fig.add_trace(go.Heatmap(z=envi), row=1, col=j+1)
-        # fig.show()
-        for i in range(0,len(phaseplaneoutput['matureage'])):
+        if j< numrows:
+            envi=sd.meantofullenvi(envimeans=phaseplaneoutput["environment_mean"][:, j], envimeanvariance=float(phaseplaneoutput["envmeanvar"]), envivariance=float(phaseplaneoutput["envvar"]), numberofbins=100) 
+            # envi=np.zeros([4,4])
+            print(j)
+            fig.add_trace(go.Heatmap(z=envi), row=j+1, col=1)
+            # fig.show()
+            # print(j)
+            for i in range(0,len(phaseplaneoutput['matureage'])):
+                if i<numcols-1:
 
-            fig.add_trace(go.Heatmap(z=np.log(phaseplaneoutput["sim_results"].isel({"day":100, "matureage":i, "freq":j}).squeeze())), col=j+1, row=i+2)
-            fig.layout.coloraxis.colorbar.showticklabels=False
-            # fig.layout.title.text="Mature Age: "+str(int(phaseplaneoutput["matureage"][i]))
-            # fig.layout.coloraxis.colorbar.title.text="Final Population (Log)"
-            # for j, freq in enumerate(np.array(phaseplaneoutput['freq'])):
-            #     # print(freq)
-            #     fig.layout.annotations[j]['text']= 'Period = %d' %int(1/freq)
-    fig.update_layout(height=1200, width=1200)
+                    if "day" in phaseplaneoutput["sim_results"].dims:
+                        fig.add_trace(go.Heatmap(z=np.log(phaseplaneoutput["sim_results"].isel({"day":100, "matureage":i, "freq":j}).squeeze())), col=i+2, row=j+1)
+                    else:
+                        fig.add_trace(go.Heatmap(z=np.log(phaseplaneoutput["sim_results"].isel({"matureage":i, "freq":j}).squeeze())), col=i+1, row=j+1)
+                    fig.layout.coloraxis.colorbar.showticklabels=False
+                    # fig.layout.title.text="Mature Age: "+str(int(phaseplaneoutput["matureage"][i]))
+                    # fig.layout.coloraxis.colorbar.title.text="Final Population (Log)"
+                    # for j, freq in enumerate(np.array(phaseplaneoutput['freq'])):
+                    #     # print(fre
+                    #     fig.layout.annotations[j]['text']= 'Period = %d' %int(1/freq)
+    print("Done with heatmaps")
+    # fig.update_layout(height=1200, width=1200)
+
     for anno in fig['layout']['annotations']:
         anno['text']=""
     for axis in fig.layout:
@@ -308,8 +341,9 @@ def makeMatureAgexFreqFigure(phaseplaneoutput):
         if type(fig.layout[axis]) == go.layout.coloraxis:
             fig.layout[axis].title.text = ''
             fig.layout[axis].tickfont = dict(color = 'rgba(0,0,0,0)')
-    fig.show()
-    fig.write_image('../Results/figs/MatureAgexFreq.pdf')
+    # fig.show()
+    # fig.write_image('../Results/figs/MatureAgexFreq-test.pdf')
+    return fig
 
 def dailychangehistogram(phaseplaneoutput):
     return phaseplaneoutput
@@ -459,3 +493,90 @@ def actualsize(input_obj):
                 new.append(obj)
         objects = gc.get_referents(*new)
     return memory_size
+
+def mapwideformforseabornheatmap(data, color=0):
+  wideform= data.pivot(columns='drift', index='bet-hedging', values='sim_results')
+  # print(wideform)
+  # return wideform
+  return sns.heatmap(wideform.iloc[-1::-1], cmap='RdBu')
+
+# def plotidealstrategy(data, dim="drift"):
+#     argmaxes=data["sim_results"].squeeze().argmax(dim=["drift", "bet-hedging"])
+#     a=
+
+def plotstrategyplots(data, sumstat="none", param1="period", param2="matureage", sharey=True):
+    argmaxes=data.squeeze().argmax(dim=["drift", "bet-hedging"])
+    f, axs = plt.subplots(1, 2, figsize=(10, 4), gridspec_kw=dict(width_ratios=[4, 4]), sharey=sharey)
+
+    # argmaxes=data.squeeze().argmax(dim=["drift", "bet-hedging"])
+    if sumstat=="none":
+        argmax_bh_df=argmaxes["bet-hedging"].to_dataframe()["sim_results"].reset_index()
+    elif sumstat=="mean":
+        argmax_bh_df=argmaxes["bet-hedging"].mean(dim="Run").to_dataframe()["sim_results"].reset_index()
+    elif sumstat=="std":
+        argmax_bh_df=argmaxes["bet-hedging"].std(dim="Run").to_dataframe()["sim_results"].reset_index()
+    argmax_bh_df["period"]=1/argmax_bh_df["freq"]
+    argmax_bh_df["period"]=np.round(argmax_bh_df["period"], 1)
+
+    argmax_bh_df["sim_results"]=argmax_bh_df["sim_results"]*data["bet-hedging"][-1].values/len(data["bet-hedging"])
+    argmax_bh_df.drop(columns=["freq"], inplace=True)
+    # return argmax_bh_df
+    sns.heatmap(argmax_bh_df.pivot(index=param1, columns=param2, values="sim_results"), ax=axs[0], vmax=.1, vmin=0, cmap="rocket")
+
+    if sumstat=="none":
+        argmax_d_df=argmaxes["drift"].to_dataframe()["sim_results"].reset_index()
+    elif sumstat=="mean":
+        argmax_d_df=argmaxes["drift"].mean(dim="Run").to_dataframe()["sim_results"].reset_index()
+    elif sumstat=="std":
+        argmax_d_df=argmaxes["drift"].std(dim="Run").to_dataframe()["sim_results"].reset_index()
+    # argmax_d_df=argmaxes["drift"].to_dataframe()["sim_results"].reset_index()
+    argmax_d_df["period"]=1/argmax_d_df["freq"]
+    argmax_d_df["period"]=np.round(argmax_d_df["period"], 1)
+
+    argmax_d_df["sim_results"]=argmax_d_df["sim_results"]*data["drift"][-1].values/len(data["drift"])
+    argmax_d_df.drop(columns=["freq"], inplace=True)
+    sns.heatmap(argmax_d_df.pivot(index=param1, columns=param2, values="sim_results"), ax=axs[1], vmax=.05, vmin=0, cmap="flare_r")
+
+
+    # sns.heatmap(argmaxes["bet-hedging"]*data["bet-hedging"][-1], ax=axs[0])
+    # sns.heatmap(argmaxes["drift"]*data["drift"][-1], ax=axs[1])
+
+    # axs[0].xlabel("Mature Age", )
+    # plt.ylabel("Period", ax=axs[0])
+    # plt.title("Ideal amount of bet-hedging for each period and mature age", ax=axs[0])
+    # label x axis of first subplot 
+    axs[0].set_xlabel("Age of Reproductive Maturity (days)")
+
+    if param1=="period":
+        axs[0].set_ylabel("Environmental Fluctuation Period (days)")
+        axs[1].set_ylabel("Environmental Fluctuation Period (days)")
+    elif param1=="matureage":
+        axs[0].set_ylabel("Age of Reproductive Maturity (days)")
+        axs[1].set_ylabel("Age of Reproductive Maturity (days)")
+    
+    if param2=="matureage":
+        axs[1].set_xlabel("Age of Reproductive Maturity (days)")
+        axs[0].set_xlabel("Age of Reproductive Maturity (days)")
+    elif param2=="envmeanvar":
+        axs[1].set_xlabel("Environmental Fluctuation Strength (AU)")
+        axs[0].set_xlabel("Environmental Fluctuation Strength (AU)")
+
+
+    if sumstat=='std':
+        axs[0].set_title("Standard Deviation of Ideal amount of bet-hedging")
+        axs[1].set_title("Standard Deviation of Ideal amount of drift")
+    else:
+        axs[0].set_title("Ideal amount of bet-hedging")
+        axs[1].set_title("Ideal amount of drift")
+
+    # axs[0].yaxis.set_major_formatter('{x:0<2.1f}')
+    # axs[1].yaxis.set_major_formatter('{x:0<2.1f}')
+    axs[0].invert_yaxis()
+    if not sharey:
+        axs[1].invert_yaxis()
+    # axs[1].invert_yaxis()
+
+    return f, axs
+
+# def plotsamplestrategyplots(data, param1="period", param2="matureage"):
+#     strats_subset=data.isel({param1:})
